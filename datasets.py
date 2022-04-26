@@ -4,28 +4,21 @@ from torch.utils.data import Dataset
 
 
 class TrainDataset(Dataset):
-    def __init__(self, h5_file):
+    def __init__(self, HR_dir, LR_dir):
         super(TrainDataset, self).__init__()
-        self.h5_file = h5_file
+        self.HR_dir = HR_dir
+        self.LR_dir = LR_dir
 
     def __getitem__(self, idx):
-        with h5py.File(self.h5_file, 'r') as f:
-            return np.expand_dims(f['lr'][idx] / 255., 0), np.expand_dims(f['hr'][idx] / 255., 0)
-
+        all_images = os.listdir(self.HR_dir)
+        HR_path, LR_path = os.path.join(self.HR_dir,all_images[idx]), os.path.join(self.LR_dir,all_images[idx])
+        HR = io.imread(HR_path) / 255
+        LR = io.imread(LR_path) / 255
+        return LR, HR
+        
     def __len__(self):
-        with h5py.File(self.h5_file, 'r') as f:
-            return len(f['lr'])
+        all_images = os.listdir(self.HR_dir)
+        return len(all_images)
 
 
-class EvalDataset(Dataset):
-    def __init__(self, h5_file):
-        super(EvalDataset, self).__init__()
-        self.h5_file = h5_file
 
-    def __getitem__(self, idx):
-        with h5py.File(self.h5_file, 'r') as f:
-            return np.expand_dims(f['lr'][str(idx)][:, :] / 255., 0), np.expand_dims(f['hr'][str(idx)][:, :] / 255., 0)
-
-    def __len__(self):
-        with h5py.File(self.h5_file, 'r') as f:
-            return len(f['lr'])
