@@ -22,7 +22,7 @@ def objective(trial):
     parser.add_argument('--LR_dir', type=str,default = "../BPNN/Data/LR_trab")
     parser.add_argument('--outputs-dir', type=str, default = "./FSRCNN_search")
     parser.add_argument('--checkpoint_bpnn', type= str, default = "BPNN_checkpoint_55.pth")
-    parser.add_argument('--alpha', default = trial.loguniform("alpha",1e-6,1e6))
+    parser.add_argument('--alpha', default = trial.suggest_loguniform("alpha",1e-6,1e6))
     parser.add_argument('--weights-file', type=str)
     parser.add_argument('--scale', type=int, default=2)
     parser.add_argument('--lr', type=float, default=1e-3)
