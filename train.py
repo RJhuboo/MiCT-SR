@@ -17,9 +17,9 @@ from utils import AverageMeter, calc_psnr
 
 def objective(trial):
     parser = argparse.ArgumentParser()
-    parser.add_argument('--HR_dir', type=str,default = "/home/jhr11385/data")
-    parser.add_argument('--LR_dir', type=str,default = "/home/jhr11385/TESTINGBASE.h5")
-    parser.add_argument('--outputs-dir', type=str, default = "/home/jhr11385/FSRCNN-output")
+    parser.add_argument('--HR_dir', type=str,default = "../BPNN/Data/ROI_trab")
+    parser.add_argument('--LR_dir', type=str,default = "../BPNN/Data/LR_trab")
+    parser.add_argument('--outputs-dir', type=str, default = "./FSRCNN_search")
     parser.add_argument('--checkpoint_bpnn', type= str, default = "BPNN_checkpoint_55.pth")
     parser.add_argument('--alpha', default = trial.loguniform("alpha",1e-6,1e6))
     parser.add_argument('--weights-file', type=str)
