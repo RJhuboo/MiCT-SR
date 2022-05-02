@@ -15,14 +15,13 @@ from models import FSRCNN, BPNN
 from datasets import TrainDataset, EvalDataset
 from utils import AverageMeter, calc_psnr
 
-
-if __name__ == '__main__':
+def objective(trial):
     parser = argparse.ArgumentParser()
     parser.add_argument('--HR_dir', type=str,default = "/home/jhr11385/data")
     parser.add_argument('--LR_dir', type=str,default = "/home/jhr11385/TESTINGBASE.h5")
     parser.add_argument('--outputs-dir', type=str, default = "/home/jhr11385/FSRCNN-output")
     parser.add_argument('--checkpoint_bpnn', type= str, default = "BPNN_checkpoint_55.pth")
-    parser.add_argument('--alpha',type=float, default = 1)
+    parser.add_argument('--alpha', default = trial.loguniform("alpha",1e-6,1e6))
     parser.add_argument('--weights-file', type=str)
     parser.add_argument('--scale', type=int, default=2)
     parser.add_argument('--lr', type=float, default=1e-3)
@@ -69,7 +68,7 @@ if __name__ == '__main__':
 
     best_weights = copy.deepcopy(model.state_dict())
     best_epoch = 0
-    best_psnr = 0.0
+    best_loss = 0.0
 
     for epoch in range(args.num_epochs):
         model.train()
@@ -104,7 +103,7 @@ if __name__ == '__main__':
         torch.save(model.state_dict(), os.path.join(args.outputs_dir, 'epoch_{}.pth'.format(epoch)))
 
         model.eval()
-        epoch_psnr = AverageMeter()
+        epoch_losses = AverageMeter()
 
         for data in eval_dataloader:
             inputs, labels = data
@@ -115,15 +114,23 @@ if __name__ == '__main__':
 
             with torch.no_grad():
                 preds = model(inputs).clamp(0.0, 1.0)
+                Ltest_SR = criterion(preds, labels)
+                Ltest_BPNN = L1Loss(P_HR,P_SR)
+                loss = Ltest_SR + (args.alpha * Ltest_BPNN)
+            epoch_losses.update(calc_psnr(preds, labels), len(inputs))
 
-            epoch_psnr.update(calc_psnr(preds, labels), len(inputs))
+        print('eval psnr: {:.2f}'.format(epoch_losses.avg))
 
-        print('eval psnr: {:.2f}'.format(epoch_psnr.avg))
-
-        if epoch_psnr.avg > best_psnr:
+        if epoch_psnr.avg > best_loss:
             best_epoch = epoch
-            best_psnr = epoch_psnr.avg
-            best_weights = copy.deepcopy(model.state_dict())
+            best_loss = epoch_losses.avg
+            #best_weights = copy.deepcopy(model.state_dict())
 
-    print('best epoch: {}, psnr: {:.2f}'.format(best_epoch, best_psnr))
-    torch.save(best_weights, os.path.join(args.outputs_dir, 'best.pth'))
+    print('best epoch: {}, psnr: {:.2f}'.format(best_epoch, best_loss))
+    return best_loss
+    #torch.save(best_weights, os.path.join(args.outputs_dir, 'best.pth'))
+    
+study = optuna.create_study(sampler=optuna.samplers.TPESampler(), direction='minimize')
+study.optimize(objective,n_trials=15)
+with open("./FSRCNN_BPNN_search.pkl","wb") as f:
+    pickle.dump(study,f)
