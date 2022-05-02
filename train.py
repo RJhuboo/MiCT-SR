@@ -10,6 +10,7 @@ import torch.backends.cudnn as cudnn
 from torch.utils.data.dataloader import DataLoader
 from tqdm import tqdm
 
+
 from models import FSRCNN, BPNN
 from datasets import TrainDataset, EvalDataset
 from utils import AverageMeter, calc_psnr
@@ -58,11 +59,13 @@ if __name__ == '__main__':
     ], lr=args.lr)
 
     train_dataset = TrainDataset(args.HR_dir,args.LR_dir)
-    train_dataloader = DataLoader(dataset=train_dataset,
+    [trainset,valset] = train_test_split(train_dataset,test_size = 0.2, random_state=1)
+    train_dataloader = DataLoader(dataset=trainset,
                                   batch_size=args.batch_size,
                                   shuffle=True,
                                   num_workers=args.num_workers,
                                   pin_memory=True)
+    eval_dataloader = DataLoader(dataset=valset, batch_size=1)    
 
     best_weights = copy.deepcopy(model.state_dict())
     best_epoch = 0
