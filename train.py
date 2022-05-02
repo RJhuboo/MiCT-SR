@@ -12,7 +12,7 @@ from tqdm import tqdm
 
 
 from models import FSRCNN, BPNN
-from datasets import TrainDataset, EvalDataset
+from datasets import TrainDataset
 from utils import AverageMeter, calc_psnr
 
 def objective(trial):
