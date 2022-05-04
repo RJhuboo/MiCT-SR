@@ -157,6 +157,6 @@ def objective(trial):
     #torch.save(best_weights, os.path.join(args.outputs_dir, 'best.pth'))
     
 study = optuna.create_study(sampler=optuna.samplers.TPESampler(), direction='minimize')
-study.optimize(objective,n_trials=2
+study.optimize(objective,n_trials=2)
 with open("./FSRCNN_BPNN_search.pkl","wb") as f:
     pickle.dump(study,f)
