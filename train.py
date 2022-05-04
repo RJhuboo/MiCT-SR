@@ -146,7 +146,7 @@ def objective(trial):
             best_loss = epoch_losses_test.avg
             #best_weights = copy.deepcopy(model.state_dict())
     end = time.time() 
-    print("Time :", start-end) 
+    print("Time :", end-start) 
     training_info = {"loss_train": tr_score, "loss_test": t_score, "bpnn_train" : tr_bpnn, "bpnn_test": t_bpnn}
     with open( os.path.join(args.outputs_dir,"losses_info.pkl"), "wb") as f:
         pickle.dump(training_info,f)
