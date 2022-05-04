@@ -104,8 +104,6 @@ def objective(trial):
                 #labels = labels.to(device)
                 inputs = inputs.to(0)
                 labels = labels.to(0)
-                model = model.to(0)
-                model_bpnn = model_bpnn.to(0)
                 preds = model(inputs)
                 P_SR = model_bpnn(preds)
                 P_HR = model_bpnn(labels)
