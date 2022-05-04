@@ -56,9 +56,7 @@ def objective(trial):
     #model_bpnn.load_state_dict(torch.load(os.path.join(args.checkpoint_bpnn)))
     model_bpnn = BPNN(args.nof, args.NB_LABEL, n1= args.n1, n2=args.n2, n3=args.n3, k1=3,k2=3,k3=3)
     model_bpnn.load_state_dict(torch.load(os.path.join(args.checkpoint_bpnn)))
-    model = nn.DataParallel(model, device_ids = args.gpu_ids)
-    model_bpnn = nn.DataParallel(model_bpnn,device_ids = args.gpu_ids)
-    
+
     
     criterion = nn.MSELoss()
     Lbpnn = L1Loss()
@@ -67,6 +65,10 @@ def objective(trial):
         {'params': model.mid_part.parameters()},
         {'params': model.last_part.parameters(), 'lr': args.lr * 0.1}
     ], lr=args.lr)
+    
+    model = nn.DataParallel(model, device_ids = args.gpu_ids)
+    model_bpnn = nn.DataParallel(model_bpnn,device_ids = args.gpu_ids)
+    
 
     train_dataset = TrainDataset(args.HR_dir,args.LR_dir)
     [trainset,valset] = train_test_split(train_dataset,test_size = 0.2, random_state=1)
