@@ -15,6 +15,7 @@ from sklearn.model_selection import train_test_split
 from models import FSRCNN, BPNN
 from datasets import TrainDataset
 from utils import AverageMeter, calc_psnr
+import time
 
 def objective(trial):
     parser = argparse.ArgumentParser()
@@ -22,12 +23,13 @@ def objective(trial):
     parser.add_argument('--LR_dir', type=str,default = "../BPNN/data/LR_trab")
     parser.add_argument('--outputs-dir', type=str, default = "./FSRCNN_search")
     parser.add_argument('--checkpoint_bpnn', type= str, default = "BPNN_checkpoint_51.pth")
-    parser.add_argument('--alpha', default = trial.suggest_loguniform("alpha",1e-6,1e6))
+    parser.add_argument('--alpha', default = 1)
+    #parser.add_argument('--alpha', default = trial.suggest_loguniform("alpha",1e-6,1e6))
     parser.add_argument('--weights-file', type=str)
     parser.add_argument('--scale', type=int, default=2)
     parser.add_argument('--lr', type=float, default=1e-3)
     parser.add_argument('--batch-size', type=int, default=16)
-    parser.add_argument('--num-epochs', type=int, default=100)
+    parser.add_argument('--num-epochs', type=int, default=4)
     parser.add_argument('--num-workers', type=int, default=8)
     parser.add_argument('--seed', type=int, default=123)
     parser.add_argument('--nof', type= int, default = 19)
@@ -75,6 +77,7 @@ def objective(trial):
     tr_score = []
     tr_bpnn = []
     t_bpnn = []
+    start = time.time()
     for epoch in range(args.num_epochs):
         model.train()
         epoch_losses = AverageMeter()
@@ -142,7 +145,8 @@ def objective(trial):
             best_epoch = epoch
             best_loss = epoch_losses_test.avg
             #best_weights = copy.deepcopy(model.state_dict())
-    
+    end = time.time() 
+    print("Time :", start-end) 
     training_info = {"loss_train": tr_score, "loss_test": t_score, "bpnn_train" : tr_bpnn, "bpnn_test": t_bpnn}
     with open( os.path.join(args.outputs_dir,"losses_info.pkl"), "wb") as f:
         pickle.dump(training_info,f)
@@ -151,6 +155,6 @@ def objective(trial):
     #torch.save(best_weights, os.path.join(args.outputs_dir, 'best.pth'))
     
 study = optuna.create_study(sampler=optuna.samplers.TPESampler(), direction='minimize')
-study.optimize(objective,n_trials=15)
+study.optimize(objective,n_trials=1)
 with open("./FSRCNN_BPNN_search.pkl","wb") as f:
     pickle.dump(study,f)
