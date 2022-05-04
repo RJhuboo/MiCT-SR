@@ -1,7 +1,7 @@
 import argparse
 import os
 import copy
-
+import pickle
 import torch
 from torch import nn
 from torch.nn import L1Loss
@@ -11,15 +11,15 @@ from torch.utils.data.dataloader import DataLoader
 from tqdm import tqdm
 import optuna
 import joblib
-
+from sklearn.model_selection import train_test_split
 from models import FSRCNN, BPNN
-from datasets import TrainDatasetloguniform
+from datasets import TrainDataset
 from utils import AverageMeter, calc_psnr
 
 def objective(trial):
     parser = argparse.ArgumentParser()
-    parser.add_argument('--HR_dir', type=str,default = "../BPNN/Data/ROI_trab")
-    parser.add_argument('--LR_dir', type=str,default = "../BPNN/Data/LR_trab")
+    parser.add_argument('--HR_dir', type=str,default = "../BPNN/data/ROI_trab")
+    parser.add_argument('--LR_dir', type=str,default = "../BPNN/data/LR_trab")
     parser.add_argument('--outputs-dir', type=str, default = "./FSRCNN_search")
     parser.add_argument('--checkpoint_bpnn', type= str, default = "BPNN_checkpoint_51.pth")
     parser.add_argument('--alpha', default = trial.suggest_loguniform("alpha",1e-6,1e6))
@@ -30,10 +30,10 @@ def objective(trial):
     parser.add_argument('--num-epochs', type=int, default=100)
     parser.add_argument('--num-workers', type=int, default=8)
     parser.add_argument('--seed', type=int, default=123)
-    parser.add_argument('--nof', type= int, default = 100)
-    parser.add_argument('--n1', type=int,default = 100)
-    parser.add_argument('--n2', type=int,default = 100)
-    parser.add_argument('--n3', type=int,default = 100)
+    parser.add_argument('--nof', type= int, default = 19)
+    parser.add_argument('--n1', type=int,default = 179)
+    parser.add_argument('--n2', type=int,default = 182)
+    parser.add_argument('--n3', type=int,default = 190)
     parser.add_argument('--NB_LABEL', type=int, default = 5)
     args = parser.parse_args()
 
@@ -52,6 +52,7 @@ def objective(trial):
     model_bpnn.load_state_dict(torch.load(os.path.join(args.checkpoint_bpnn)))
         
     criterion = nn.MSELoss()
+    Lbpnn = L1Loss()
     optimizer = optim.Adam([
         {'params': model.first_part.parameters()},
         {'params': model.mid_part.parameters()},
@@ -69,65 +70,83 @@ def objective(trial):
 
     best_weights = copy.deepcopy(model.state_dict())
     best_epoch = 0
-    best_loss = 0.0
-
+    best_loss = 10
+    t_score = []
+    tr_score = []
+    tr_bpnn = []
+    t_bpnn = []
     for epoch in range(args.num_epochs):
         model.train()
         epoch_losses = AverageMeter()
+        bpnn_loss = AverageMeter()
 
         with tqdm(total=(len(train_dataset) - len(train_dataset) % args.batch_size), ncols=80) as t:
             t.set_description('epoch: {}/{}'.format(epoch, args.num_epochs - 1))
 
             for data in train_dataloader:
                 inputs, labels = data
-
+                inputs = inputs.reshape(inputs.size(0),1,256,256)
+                labels = labels.reshape(labels.size(0),1,512,512)
+                inputs, labels= inputs.float(), labels.float()
                 inputs = inputs.to(device)
                 labels = labels.to(device)
 
                 preds = model(inputs)
                 P_SR = model_bpnn(preds)
                 P_HR = model_bpnn(labels)
-
+                
                 L_SR = criterion(preds, labels)
-                L_BPNN = L1Loss(P_HR,P_SR)
+                L_BPNN = Lbpnn(P_HR,P_SR)
                 loss = L_SR + (args.alpha * L_BPNN)
                 
                 epoch_losses.update(loss.item(), len(inputs))
-
+                bpnn_loss.update(L_BPNN.item(), len(inputs))
                 optimizer.zero_grad()
                 loss.backward()
                 optimizer.step()
 
                 t.set_postfix(loss='{:.6f}'.format(epoch_losses.avg))
                 t.update(len(inputs))
-
-        torch.save(model.state_dict(), os.path.join(args.outputs_dir, 'epoch_{}.pth'.format(epoch)))
-
+        print("##### Train #####")
+        print("BPNN loss: {:.6f}".format(bpnn_loss.avg))
+        print("train loss : {:.6f}".format(epoch_losses.avg))
+        #torch.save(model.state_dict(), os.path.join(args.outputs_dir, 'epoch_{}.pth'.format(epoch)))
+        tr_score.append(epoch_losses.avg)
+        tr_bpnn.append(bpnn_loss.avg)
+        
         model.eval()
-        epoch_losses = AverageMeter()
-
+        epoch_losses_test = AverageMeter()
+        bpnn_loss_test = AverageMeter()
         for data in eval_dataloader:
             inputs, labels = data
-            print("input {}, labels {}".format(inputs.shape, labels.shape))
-
+            
+            inputs = inputs.reshape(inputs.size(0),1,256,256)
+            labels = labels.reshape(labels.size(0),1,512,512)
+            inputs, labels = inputs.float(), labels.float()
             inputs = inputs.to(device)
             labels = labels.to(device)
 
             with torch.no_grad():
                 preds = model(inputs).clamp(0.0, 1.0)
                 Ltest_SR = criterion(preds, labels)
-                Ltest_BPNN = L1Loss(P_HR,P_SR)
-                loss = Ltest_SR + (args.alpha * Ltest_BPNN)
-            epoch_losses.update(calc_psnr(preds, labels), len(inputs))
-
-        print('eval psnr: {:.2f}'.format(epoch_losses.avg))
-
-        if epoch_psnr.avg > best_loss:
+                Ltest_BPNN = Lbpnn(P_HR,P_SR)
+                loss_test = Ltest_SR + (args.alpha * Ltest_BPNN)
+                epoch_losses_test.update(loss_test.item())
+                bpnn_loss_test.update(Ltest_BPNN.item())
+        print("##### Test #####")
+        print('eval loss: {:.6f}'.format(epoch_losses_test.avg))
+        print('bpnn loss: {:.6f}'.format(bpnn_loss_test.avg))
+        t_score.append(epoch_losses_test.avg)
+        t_bpnn.append(bpnn_loss_test.avg)
+        if epoch_losses_test.avg < best_loss:
             best_epoch = epoch
-            best_loss = epoch_losses.avg
+            best_loss = epoch_losses_test.avg
             #best_weights = copy.deepcopy(model.state_dict())
-
-    print('best epoch: {}, psnr: {:.2f}'.format(best_epoch, best_loss))
+    
+    training_info = {"loss_train": tr_score, "loss_test": t_score, "bpnn_train" : tr_bpnn, "bpnn_test": t_bpnn}
+    with open( os.path.join(args.outputs_dir,"losses_info.pkl"), "wb") as f:
+        pickle.dump(training_info,f)
+    print('best epoch: {}, loss: {:.6f}'.format(best_epoch, best_loss))
     return best_loss
     #torch.save(best_weights, os.path.join(args.outputs_dir, 'best.pth'))
     
