@@ -23,8 +23,7 @@ def objective(trial):
     parser.add_argument('--LR_dir', type=str,default = "../BPNN/data/LR_trab")
     parser.add_argument('--outputs-dir', type=str, default = "./FSRCNN_search")
     parser.add_argument('--checkpoint_bpnn', type= str, default = "BPNN_checkpoint_51.pth")
-    parser.add_argument('--alpha', default = 1)
-    #parser.add_argument('--alpha', default = trial.suggest_loguniform("alpha",1e-6,1e6))
+    parser.add_argument('--alpha', default = trial.suggest_loguniform("alpha",1e-6,1e6))
     parser.add_argument('--weights-file', type=str)
     parser.add_argument('--scale', type=int, default=2)
     parser.add_argument('--lr', type=float, default=1e-3)
@@ -49,15 +48,11 @@ def objective(trial):
     device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 
     torch.manual_seed(args.seed)
-
-    #model = FSRCNN(scale_factor=args.scale).to(device)
-    model = FSRCNN(scale_factor=args.scale)
-    #model_bpnn = BPNN(args.nof, args.NB_LABEL, n1= args.n1, n2=args.n2, n3=args.n3, k1=3,k2=3,k3=3).to(device)
-    #model_bpnn.load_state_dict(torch.load(os.path.join(args.checkpoint_bpnn)))
-    model_bpnn = BPNN(args.nof, args.NB_LABEL, n1= args.n1, n2=args.n2, n3=args.n3, k1=3,k2=3,k3=3)
+    print('how many times do we start again ?')
+    model = FSRCNN(scale_factor=args.scale).to(device)
+    model_bpnn = BPNN(args.nof, args.NB_LABEL, n1= args.n1, n2=args.n2, n3=args.n3, k1=3,k2=3,k3=3).to(device)
     model_bpnn.load_state_dict(torch.load(os.path.join(args.checkpoint_bpnn)))
 
-    
     criterion = nn.MSELoss()
     Lbpnn = L1Loss()
     optimizer = optim.Adam([
@@ -66,8 +61,6 @@ def objective(trial):
         {'params': model.last_part.parameters(), 'lr': args.lr * 0.1}
     ], lr=args.lr)
     
-    model = nn.DataParallel(model, device_ids = args.gpu_ids)
-    model_bpnn = nn.DataParallel(model_bpnn,device_ids = args.gpu_ids)
     
 
     train_dataset = TrainDataset(args.HR_dir,args.LR_dir)
@@ -100,10 +93,8 @@ def objective(trial):
                 inputs = inputs.reshape(inputs.size(0),1,256,256)
                 labels = labels.reshape(labels.size(0),1,512,512)
                 inputs, labels= inputs.float(), labels.float()
-                #inputs = inputs.to(device)
-                #labels = labels.to(device)
-                inputs = inputs.to(0)
-                labels = labels.to(0)
+                inputs = inputs.to(device)
+                labels = labels.to(device)
                 preds = model(inputs)
                 P_SR = model_bpnn(preds)
                 P_HR = model_bpnn(labels)
@@ -166,6 +157,6 @@ def objective(trial):
     #torch.save(best_weights, os.path.join(args.outputs_dir, 'best.pth'))
     
 study = optuna.create_study(sampler=optuna.samplers.TPESampler(), direction='minimize')
-study.optimize(objective,n_trials=1)
+study.optimize(objective,n_trials=2
 with open("./FSRCNN_BPNN_search.pkl","wb") as f:
     pickle.dump(study,f)
