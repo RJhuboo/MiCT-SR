@@ -36,11 +36,12 @@ def objective(trial):
     parser.add_argument('--n1', type=int,default = 179)
     parser.add_argument('--n2', type=int,default = 182)
     parser.add_argument('--n3', type=int,default = 190)
+    parser.add_argument('--gpu_ids', type=list, default = [0,1])
     parser.add_argument('--NB_LABEL', type=int, default = 5)
     args = parser.parse_args()
 
     args.outputs_dir = os.path.join(args.outputs_dir, 'BPNN_first_shot_x{}'.format(args.scale))
-
+    
     if not os.path.exists(args.outputs_dir):
         os.makedirs(args.outputs_dir)
 
@@ -49,10 +50,16 @@ def objective(trial):
 
     torch.manual_seed(args.seed)
 
-    model = FSRCNN(scale_factor=args.scale).to(device)
-    model_bpnn = BPNN(args.nof, args.NB_LABEL, n1= args.n1, n2=args.n2, n3=args.n3, k1=3,k2=3,k3=3).to(device)
+    #model = FSRCNN(scale_factor=args.scale).to(device)
+    model = FSRCNN(scale_factor=args.scale)
+    #model_bpnn = BPNN(args.nof, args.NB_LABEL, n1= args.n1, n2=args.n2, n3=args.n3, k1=3,k2=3,k3=3).to(device)
+    #model_bpnn.load_state_dict(torch.load(os.path.join(args.checkpoint_bpnn)))
+    model_bpnn = BPNN(args.nof, args.NB_LABEL, n1= args.n1, n2=args.n2, n3=args.n3, k1=3,k2=3,k3=3)
     model_bpnn.load_state_dict(torch.load(os.path.join(args.checkpoint_bpnn)))
-        
+    model = nn.DataParallel(model, gpu_ids = args.gpu_ids)
+    model_bpnn = nn.DataParallel(model_bpnn,gpu_ids = args.gpu_ids)
+    
+    
     criterion = nn.MSELoss()
     Lbpnn = L1Loss()
     optimizer = optim.Adam([
@@ -91,9 +98,12 @@ def objective(trial):
                 inputs = inputs.reshape(inputs.size(0),1,256,256)
                 labels = labels.reshape(labels.size(0),1,512,512)
                 inputs, labels= inputs.float(), labels.float()
-                inputs = inputs.to(device)
-                labels = labels.to(device)
-
+                #inputs = inputs.to(device)
+                #labels = labels.to(device)
+                inputs = inputs.to(0)
+                labels = labels.to(0)
+                model = model.to(0)
+                model_bpnn = model_bpnn.to(0)
                 preds = model(inputs)
                 P_SR = model_bpnn(preds)
                 P_HR = model_bpnn(labels)
@@ -105,7 +115,8 @@ def objective(trial):
                 epoch_losses.update(loss.item(), len(inputs))
                 bpnn_loss.update(L_BPNN.item(), len(inputs))
                 optimizer.zero_grad()
-                loss.backward()
+                #loss.backward()
+                loss.mean().backward()
                 optimizer.step()
 
                 t.set_postfix(loss='{:.6f}'.format(epoch_losses.avg))
