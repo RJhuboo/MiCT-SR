@@ -56,8 +56,8 @@ def objective(trial):
     #model_bpnn.load_state_dict(torch.load(os.path.join(args.checkpoint_bpnn)))
     model_bpnn = BPNN(args.nof, args.NB_LABEL, n1= args.n1, n2=args.n2, n3=args.n3, k1=3,k2=3,k3=3)
     model_bpnn.load_state_dict(torch.load(os.path.join(args.checkpoint_bpnn)))
-    model = nn.DataParallel(model, gpu_ids = args.gpu_ids)
-    model_bpnn = nn.DataParallel(model_bpnn,gpu_ids = args.gpu_ids)
+    model = nn.DataParallel(model, device_ids = args.gpu_ids)
+    model_bpnn = nn.DataParallel(model_bpnn,device_ids = args.gpu_ids)
     
     
     criterion = nn.MSELoss()
