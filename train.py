@@ -23,12 +23,12 @@ def objective(trial):
     parser.add_argument('--LR_dir', type=str,default = "../BPNN/data/LR_trab")
     parser.add_argument('--outputs-dir', type=str, default = "./FSRCNN_search")
     parser.add_argument('--checkpoint_bpnn', type= str, default = "BPNN_checkpoint_51.pth")
-    parser.add_argument('--alpha', default = trial.suggest_loguniform("alpha",1e-6,1e6))
+    parser.add_argument('--alpha', default = trial.suggest_loguniform("alpha",1e-5,1e6))
     parser.add_argument('--weights-file', type=str)
     parser.add_argument('--scale', type=int, default=2)
     parser.add_argument('--lr', type=float, default=1e-3)
     parser.add_argument('--batch-size', type=int, default=16)
-    parser.add_argument('--num-epochs', type=int, default=4)
+    parser.add_argument('--num-epochs', type=int, default=100)
     parser.add_argument('--num-workers', type=int, default=8)
     parser.add_argument('--seed', type=int, default=123)
     parser.add_argument('--nof', type= int, default = 19)
@@ -157,6 +157,6 @@ def objective(trial):
     #torch.save(best_weights, os.path.join(args.outputs_dir, 'best.pth'))
     
 study = optuna.create_study(sampler=optuna.samplers.TPESampler(), direction='minimize')
-study.optimize(objective,n_trials=2)
+study.optimize(objective,n_trials=12)
 with open("./FSRCNN_BPNN_search.pkl","wb") as f:
     pickle.dump(study,f)
