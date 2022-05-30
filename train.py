@@ -101,7 +101,7 @@ def objective(trial):
             epoch_losses = AverageMeter()
             bpnn_loss = AverageMeter()
 
-            with tqdm(total=(len(train_dataset) - len(train_dataset) % args.batch_size), ncols=80) as t:
+            with tqdm(total=(len(train_dataloader) - len(train_dataloader) % args.batch_size), ncols=80) as t:
                 t.set_description('epoch: {}/{}'.format(epoch, args.num_epochs - 1))
 
                 for data in train_dataloader:
