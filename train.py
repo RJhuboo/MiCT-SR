@@ -79,11 +79,9 @@ def objective(trial):
         dataset = TrainDataset(args.HR_dir, args.LR_dir)
         train_dataloader = DataLoader(dataset=dataset,
                                       batch_size=args.batch_size,
-                                      shuffle=True,
                                       sampler=train_index,
                                       num_workers=args.num_workers)
         eval_dataloader = DataLoader(dataset=dataset, 
-                                     shuffle=True,
                                      sampler=test_index,
                                      batch_size=1,
                                      num_workers=args.num_workers)    
