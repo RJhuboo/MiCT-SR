@@ -71,7 +71,7 @@ def objective(trial):
                        
     #train_dataset = TrainDataset(args.HR_dir,args.LR_dir)
     index = range(NB_DATA)
-    kf = KFold(n_splits = opt['k_fold'], shuffle=True)
+    kf = KFold(n_splits = args.k_fold, shuffle=True)
     kf.get_n_splits(index)
                                  
     for train_index, test_index in kf.split(index):
