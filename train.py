@@ -30,7 +30,7 @@ def objective(trial):
     parser.add_argument('--scale', type=int, default=2)
     parser.add_argument('--lr', type=float, default=1e-3)
     parser.add_argument('--batch-size', type=int, default=16)
-    parser.add_argument('--num-epochs', type=int, default=100)
+    parser.add_argument('--num-epochs', type=int, default=        psnr.append(calc_psnr(hr, preds))100)
     parser.add_argument('--num-workers', type=int, default=8)
     parser.add_argument('--seed', type=int, default=123)
     parser.add_argument('--nof', type= int, default = 19)
@@ -95,7 +95,8 @@ def objective(trial):
         tr_bpnn = []
         t_bpnn = []
         start = time.time()
-          
+        psnr = []
+        
         for epoch in range(args.num_epochs):
             model.train()
             epoch_losses = AverageMeter()
@@ -154,6 +155,7 @@ def objective(trial):
                     loss_test = Ltest_SR + (args.alpha * Ltest_BPNN)
                     epoch_losses_test.update(loss_test.item())
                     bpnn_loss_test.update(Ltest_BPNN.item())
+                    psnr.append(calc_psnr(labels, preds))
             print("##### Test #####")
             print('eval loss: {:.6f}'.format(epoch_losses_test.avg))
             print('bpnn loss: {:.6f}'.format(bpnn_loss_test.avg))
@@ -165,7 +167,7 @@ def objective(trial):
                 #best_weights = copy.deepcopy(model.state_dict())
         end = time.time() 
         print("Time :", end-start) 
-        training_info = {"loss_train": tr_score, "loss_test": t_score, "bpnn_train" : tr_bpnn, "bpnn_test": t_bpnn}*
+        training_info = {"loss_train": tr_score, "loss_test": t_score, "bpnn_train" : tr_bpnn, "bpnn_test": t_bpnn, "psnr": sum(psnr)/len(psnr)}
         i=1
         while os.path.exists(os.path.join(args.outputs_dir,"losses_info"+str(i)+".pkl")) == True:
             i=i+1
