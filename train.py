@@ -19,6 +19,7 @@ from utils import AverageMeter, calc_psnr
 import time
 
 NB_DATA = 4474
+study = optuna.create_study(sampler=optuna.samplers.TPESampler(), direction='minimize')
 
 def objective(trial):
     parser = argparse.ArgumentParser()
@@ -170,15 +171,14 @@ def objective(trial):
         print("Time :", end-start) 
         training_info = {"loss_train": tr_score, "loss_test": t_score, "bpnn_train" : tr_bpnn, "bpnn_test": t_bpnn, "psnr": sum(psnr)/len(psnr)}
         i=1
-        while os.path.exists(os.path.join(args.outputs_dir,"losses_info"+str(i)+".pkl")) == True:
-            i=i+1
-        with open( os.path.join(args.outputs_dir,"losses_info"+str(i)+".pkl"), "wb") as f:
-            pickle.dump(training_info,f)
-        print('best epoch: {}, loss: {:.6f}'.format(best_epoch, best_loss))
-        return best_loss
+    while os.path.exists(os.path.join(args.outputs_dir,"losses_info"+str(i)+".pkl")) == True:
+        i=i+1
+    with open( os.path.join(args.outputs_dir,"losses_info"+str(i)+".pkl"), "wb") as f:
+        pickle.dump(training_info,f)
+    print('best epoch: {}, loss: {:.6f}'.format(best_epoch, best_loss))
+    return best_loss
         #torch.save(best_weights, os.path.join(args.outputs_dir, 'best.pth'))
 
-study = optuna.create_study(sampler=optuna.samplers.TPESampler(), direction='minimize')
 study.optimize(objective,n_trials=12)
 with open("./FSRCNN_BPNN_search.pkl","wb") as f:
     pickle.dump(study,f)
