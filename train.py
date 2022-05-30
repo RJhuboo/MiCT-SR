@@ -39,7 +39,7 @@ def objective(trial):
     parser.add_argument('--n3', type=int,default = 190)
     parser.add_argument('--gpu_ids', type=list, default = [0])
     parser.add_argument('--NB_LABEL', type=int, default = 6)
-    paser.add_argument('--k_fold', type=int, default = 5)
+    parser.add_argument('--k_fold', type=int, default = 5)
     args = parser.parse_args()
 
     args.outputs_dir = os.path.join(args.outputs_dir, 'BPNN_first_shot_x{}'.format(args.scale))
@@ -165,8 +165,11 @@ def objective(trial):
                 #best_weights = copy.deepcopy(model.state_dict())
         end = time.time() 
         print("Time :", end-start) 
-        training_info = {"loss_train": tr_score, "loss_test": t_score, "bpnn_train" : tr_bpnn, "bpnn_test": t_bpnn}
-        with open( os.path.join(args.outputs_dir,"losses_info.pkl"), "wb") as f:
+        training_info = {"loss_train": tr_score, "loss_test": t_score, "bpnn_train" : tr_bpnn, "bpnn_test": t_bpnn}*
+        i=1
+        while os.path.exists(os.path.join(args.outputs_dir,"losses_info"+str(i)+".pkl")) == True:
+            i=i+1
+        with open( os.path.join(args.outputs_dir,"losses_info"+str(i)+".pkl"), "wb") as f:
             pickle.dump(training_info,f)
         print('best epoch: {}, loss: {:.6f}'.format(best_epoch, best_loss))
         return best_loss
