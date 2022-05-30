@@ -37,9 +37,9 @@ def objective(trial):
     parser.add_argument('--n1', type=int,default = 179)
     parser.add_argument('--n2', type=int,default = 182)
     parser.add_argument('--n3', type=int,default = 190)
-    parser.add_argument('--gpu_ids', type=list, default = [0,1])
-    parser.add_argument('--NB_LABEL', type=int, default = 5)
-    paser.add_argument('--k_fold', type=
+    parser.add_argument('--gpu_ids', type=list, default = [0])
+    parser.add_argument('--NB_LABEL', type=int, default = 6)
+    paser.add_argument('--k_fold', type=int, default = 5)
     args = parser.parse_args()
 
     args.outputs_dir = os.path.join(args.outputs_dir, 'BPNN_first_shot_x{}'.format(args.scale))
