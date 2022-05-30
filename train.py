@@ -12,6 +12,7 @@ from tqdm import tqdm
 import optuna
 import joblib
 from sklearn.model_selection import train_test_split
+from sklearn.model_selection import KFold
 from models import FSRCNN, BPNN
 from datasets import TrainDataset
 from utils import AverageMeter, calc_psnr
