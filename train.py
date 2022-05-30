@@ -81,13 +81,12 @@ def objective(trial):
                                       batch_size=args.batch_size,
                                       shuffle=True,
                                       sampler=train_index,
-                                      num_workers=args.num_workers,
-                                      pin_memory=True)
+                                      num_workers=args.num_workers)
         eval_dataloader = DataLoader(dataset=dataset, 
                                      shuffle=True,
                                      sampler=test_index,
                                      batch_size=1,
-                                    num_workers=args.num_workers)    
+                                     num_workers=args.num_workers)    
 
         best_weights = copy.deepcopy(model.state_dict())
         best_epoch = 0
