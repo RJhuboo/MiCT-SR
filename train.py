@@ -19,7 +19,7 @@ from utils import AverageMeter, calc_psnr
 import time
 
 NB_DATA = 4474
-study = optuna.create_study(sampler=optuna.samplers.TPESampler(), direction=['minimize','maximize'])
+study = optuna.create_study(sampler=optuna.samplers.TPESampler(), directions =['minimize','maximize'])
 
 def objective(trial):
     parser = argparse.ArgumentParser()
