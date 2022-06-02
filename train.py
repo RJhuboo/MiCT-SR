@@ -4,7 +4,7 @@ import copy
 import pickle
 import torch
 from torch import nn
-from torch.nn import L1Loss
+from torch.nn import L1Loss, MSELoss
 import torch.optim as optim
 import torch.backends.cudnn as cudnn
 from torch.utils.data.dataloader import DataLoader
@@ -19,7 +19,7 @@ from utils import AverageMeter, calc_psnr
 import time
 
 NB_DATA = 4474
-study = optuna.create_study(sampler=optuna.samplers.TPESampler(), direction='minimize')
+study = optuna.create_study(sampler=optuna.samplers.TPESampler(), direction=['minimize','maximize'])
 
 def objective(trial):
     parser = argparse.ArgumentParser()
@@ -28,6 +28,7 @@ def objective(trial):
     parser.add_argument('--outputs-dir', type=str, default = "./FSRCNN_search")
     parser.add_argument('--checkpoint_bpnn', type= str, default = "BPNN_checkpoint_75.pth")
     parser.add_argument('--alpha', default = trial.suggest_loguniform("alpha",1e-5,1e6))
+    parser.add_argument('--Loss_bpnn', default = trial.suggest_categorical("Loss_bpnn",[L1Loss,MSELoss])
     parser.add_argument('--weights-file', type=str)
     parser.add_argument('--scale', type=int, default=2)
     parser.add_argument('--lr', type=float, default=1e-3)
@@ -94,7 +95,7 @@ def objective(trial):
         tr_bpnn = []
         t_bpnn = []
         start = time.time()
-        psnr = []
+        
         
         for epoch in range(args.num_epochs):
             model.train()
@@ -116,7 +117,7 @@ def objective(trial):
                     P_HR = model_bpnn(labels)
 
                     L_SR = criterion(preds, labels)
-                    L_BPNN = Lbpnn(P_HR,P_SR)
+                    L_BPNN = Lbpnn(P_SR,P_HR)
                     loss = L_SR + (args.alpha * L_BPNN)
 
                     epoch_losses.update(loss.item(), len(inputs))
@@ -134,7 +135,7 @@ def objective(trial):
             #torch.save(model.state_dict(), os.path.join(args.outputs_dir, 'epoch_{}.pth'.format(epoch)))
             tr_score.append(epoch_losses.avg)
             tr_bpnn.append(bpnn_loss.avg)
-
+            psnr = []
             model.eval()
             epoch_losses_test = AverageMeter()
             bpnn_loss_test = AverageMeter()
@@ -150,7 +151,7 @@ def objective(trial):
                 with torch.no_grad():
                     preds = model(inputs).clamp(0.0, 1.0)
                     Ltest_SR = criterion(preds, labels)
-                    Ltest_BPNN = Lbpnn(P_HR,P_SR)
+                    Ltest_BPNN = Lbpnn(P_SR,P_HR)
                     loss_test = Ltest_SR + (args.alpha * Ltest_BPNN)
                     epoch_losses_test.update(loss_test.item())
                     bpnn_loss_test.update(Ltest_BPNN.item())
@@ -173,7 +174,7 @@ def objective(trial):
     with open( os.path.join(args.outputs_dir,"losses_info"+str(i)+".pkl"), "wb") as f:
         pickle.dump(training_info,f)
     print('best epoch: {}, loss: {:.6f}'.format(best_epoch, best_loss))
-    return best_loss
+    return min(t_bpnn), max(psnr)
         #torch.save(best_weights, os.path.join(args.outputs_dir, 'best.pth'))
 
 study.optimize(objective,n_trials=12)
