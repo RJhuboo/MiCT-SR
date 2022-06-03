@@ -2,7 +2,7 @@ import h5py
 import numpy as np
 from torch.utils.data import Dataset
 import os
-from skimage import io
+import cv2
 
 class TrainDataset(Dataset):
     def __init__(self, HR_dir, LR_dir):
@@ -13,8 +13,8 @@ class TrainDataset(Dataset):
     def __getitem__(self, idx):
         all_images = os.listdir(self.HR_dir)
         HR_path, LR_path = os.path.join(self.HR_dir,all_images[idx]), os.path.join(self.LR_dir,all_images[idx])
-        HR = io.imread(HR_path) / 255
-        LR = io.imread(LR_path) / 255
+        HR = cv2.imread(HR_path,cv2.IMREAD_GRAYSCALE) / 255
+        LR = cv2.imread(LR_path,cv2.IMREAD_GRAYSCALE) / 255
         return LR, HR
         
     def __len__(self):
