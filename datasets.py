@@ -2,7 +2,7 @@ import h5py
 import numpy as np
 from torch.utils.data import Dataset
 import os
-from sklearn import io
+from skimage import io
 
 class TrainDataset(Dataset):
     def __init__(self, HR_dir, LR_dir):
