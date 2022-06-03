@@ -60,7 +60,7 @@ def objective(trial):
     model_bpnn.load_state_dict(torch.load(os.path.join(args.checkpoint_bpnn)))
 
     criterion = nn.MSELoss()
-    Lbpnn = opt.Loss_bpnn
+    Lbpnn = args.Loss_bpnn
     optimizer = optim.Adam([
         {'params': model.first_part.parameters()},
         {'params': model.mid_part.parameters()},
