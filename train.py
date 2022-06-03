@@ -60,7 +60,7 @@ def objective(trial):
     model_bpnn.load_state_dict(torch.load(os.path.join(args.checkpoint_bpnn)))
 
     criterion = nn.MSELoss()
-    Lbpnn = L1Loss()
+    Lbpnn = opt.Loss_bpnn
     optimizer = optim.Adam([
         {'params': model.first_part.parameters()},
         {'params': model.mid_part.parameters()},
@@ -75,7 +75,8 @@ def objective(trial):
     index = range(NB_DATA)
     kf = KFold(n_splits = args.k_fold, shuffle=True)
     kf.get_n_splits(index)
-                                 
+    
+    cross_bpnn, cross_score, cross_psnr = [], [], []
     for train_index, test_index in kf.split(index):
         dataset = TrainDataset(args.HR_dir, args.LR_dir)
         train_dataloader = DataLoader(dataset=dataset,
@@ -90,10 +91,7 @@ def objective(trial):
         best_weights = copy.deepcopy(model.state_dict())
         best_epoch = 0
         best_loss = 10
-        t_score = []
-        tr_score = []
-        tr_bpnn = []
-        t_bpnn = []
+        t_score = [],tr_score = [],tr_bpnn = [],t_bpnn = [],t_psnr = []
         start = time.time()
         
         
@@ -161,14 +159,18 @@ def objective(trial):
             print('bpnn loss: {:.6f}'.format(bpnn_loss_test.avg))
             t_score.append(epoch_losses_test.avg)
             t_bpnn.append(bpnn_loss_test.avg)
+            t_psnr.append(sum(psnr)/len(psnr))
             if epoch_losses_test.avg < best_loss:
                 best_epoch = epoch
                 best_loss = epoch_losses_test.avg
                 #best_weights = copy.deepcopy(model.state_dict())
         end = time.time() 
         print("Time :", end-start) 
-        training_info = {"loss_train": tr_score, "loss_test": t_score, "bpnn_train" : tr_bpnn, "bpnn_test": t_bpnn, "psnr": sum(psnr)/len(psnr)}
-        i=1
+        cross_bpnn.append(t_bpnn[best_epoch])
+        cross_score.append(t_score[best_epoch])
+        cross_psnr.append(t_psnr[best_epoch])
+    training_info = {"loss_train": tr_score, "loss_val": cross_score/len(cross_score), "bpnn_train" : tr_bpnn, "bpnn_val": cross_bpnn/len(cross_bpnn), "psnr", cross_psnr/len(cross_psnr) }
+    i=1
     while os.path.exists(os.path.join(args.outputs_dir,"losses_info"+str(i)+".pkl")) == True:
         i=i+1
     with open( os.path.join(args.outputs_dir,"losses_info"+str(i)+".pkl"), "wb") as f:
