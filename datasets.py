@@ -2,7 +2,7 @@ import h5py
 import numpy as np
 from torch.utils.data import Dataset
 import os
-import cv2
+from sklearn import io
 
 class TrainDataset(Dataset):
     def __init__(self, HR_dir, LR_dir):
@@ -13,8 +13,8 @@ class TrainDataset(Dataset):
     def __getitem__(self, idx):
         all_images = os.listdir(self.HR_dir)
         HR_path, LR_path = os.path.join(self.HR_dir,all_images[idx]), os.path.join(self.LR_dir,all_images[idx])
-        HR = cv2.imread(HR_path,cv2.IMREAD_GRAYSCALE) / 255
-        LR = cv2.imread(LR_path,cv2.IMREAD_GRAYSCALE) / 255
+        HR = io.imread(HR_path,plugin='matplotlib') / 255
+        LR = io.imread(LR_path,plugin='matplotlib') / 255
         return LR, HR
         
     def __len__(self):
