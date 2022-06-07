@@ -52,20 +52,9 @@ def objective(trial):
 
     cudnn.benchmark = True
     device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
-
-    torch.manual_seed(args.seed)
-    print('how many times do we start again ?')
-    model = FSRCNN(scale_factor=args.scale).to(device)
+    
     model_bpnn = BPNN(args.nof, args.NB_LABEL, n1= args.n1, n2=args.n2, n3=args.n3, k1=3,k2=3,k3=3).to(device)
     model_bpnn.load_state_dict(torch.load(os.path.join(args.checkpoint_bpnn)))
-
-    criterion = nn.MSELoss()
-    Lbpnn = args.Loss_bpnn
-    optimizer = optim.Adam([
-        {'params': model.first_part.parameters()},
-        {'params': model.mid_part.parameters()},
-        {'params': model.last_part.parameters(), 'lr': args.lr * 0.1}
-    ], lr=args.lr)
     
     for param in model_bpnn.parameters():
         param.requires_grad = False
@@ -78,6 +67,17 @@ def objective(trial):
     
     cross_bpnn, cross_score, cross_psnr = [], [], []
     for train_index, test_index in kf.split(index):
+        torch.manual_seed(args.seed)
+        print('how many times do we start again ?')
+        model = FSRCNN(scale_factor=args.scale).to(device)
+        criterion = nn.MSELoss()
+        Lbpnn = args.Loss_bpnn
+        optimizer = optim.Adam([
+            {'params': model.first_part.parameters()},
+            {'params': model.mid_part.parameters()},
+            {'params': model.last_part.parameters(), 'lr': args.lr * 0.1}
+                                ], lr=args.lr)
+        
         dataset = TrainDataset(args.HR_dir, args.LR_dir)
         train_dataloader = DataLoader(dataset=dataset,
                                       batch_size=args.batch_size,
