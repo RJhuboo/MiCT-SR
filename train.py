@@ -173,7 +173,7 @@ def objective(trial):
         cross_bpnn.append(t_bpnn[best_epoch])
         cross_score.append(t_score[best_epoch])
         cross_psnr.append(t_psnr[best_epoch])
-    training_info = {"loss_train": tr_score, "loss_val": cross_score/len(cross_score), "bpnn_train" : tr_bpnn, "bpnn_val": cross_bpnn/len(cross_bpnn), "psnr": cross_psnr/len(cross_psnr) }
+    training_info = {"loss_train": tr_score, "loss_val": sum(cross_score)/len(cross_score), "bpnn_train" : tr_bpnn, "bpnn_val": sum(cross_bpnn)/len(cross_bpnn), "psnr": sum(cross_psnr)/len(cross_psnr) }
     i=1
     while os.path.exists(os.path.join(args.outputs_dir,"losses_info"+str(i)+".pkl")) == True:
         i=i+1
