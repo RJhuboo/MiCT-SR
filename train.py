@@ -170,8 +170,7 @@ def objective(trial):
         cross_bpnn = cross_bpnn + np.array(t_bpnn)
         cross_score = cross_score + np.array(t_score)
         cross_psnr = cross_psnr + np.array(t_psnr)
-    print(tr_score, sum(cross_score)/len(cross_score), tr_bpnn, 
-    training_info = {"loss_train": tr_score, "loss_val": cross_score/args.k_fold, "bpnn_train" : tr_bpnn, "bpnn_val": cross_bpnn/args.k_fold, "psnr": cross_psnr/args.k_fold }
+    training_info = {"loss_train": tr_score, "loss_val": cross_score/args.k_fold, "bpnn_train" : tr_bpnn, "bpnn_val": cross_bpnn/args.k_fold, "psnr": cross_psnr/args.k_fold}
     i=1
     while os.path.exists(os.path.join(args.outputs_dir,"losses_info"+str(i)+".pkl")) == True:
         i=i+1
