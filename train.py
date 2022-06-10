@@ -33,7 +33,7 @@ def objective(trial):
     parser.add_argument('--scale', type=int, default=2)
     parser.add_argument('--lr', type=float, default=1e-3)
     parser.add_argument('--batch-size', type=int, default=16)
-    parser.add_argument('--num-epochs', type=int, default=150)
+    parser.add_argument('--num-epochs', type=int, default=2)
     parser.add_argument('--num-workers', type=int, default=6)
     parser.add_argument('--seed', type=int, default=123)
     parser.add_argument('--nof', type= int, default = 85)
@@ -91,13 +91,9 @@ def objective(trial):
         best_weights = copy.deepcopy(model.state_dict())
         best_epoch = 0
         best_loss = 10
-        t_score = []
-        tr_score = []
-        tr_bpnn = []
-        t_bpnn = []
-        t_psnr = []
+        t_score, tr_score, tr_bpnn, t_bpnn, t_psnr = [], [] ,[], [], []
         start = time.time()
-        
+        cross_bpnn, cross_score, cross_psnr = [], [], []
         
         for epoch in range(args.num_epochs):
             model.train()
@@ -112,8 +108,7 @@ def objective(trial):
                     inputs = inputs.reshape(inputs.size(0),1,256,256)
                     labels = labels.reshape(labels.size(0),1,512,512)
                     inputs, labels= inputs.float(), labels.float()
-                    inputs = inputs.to(device)
-                    labels = labels.to(device)
+                    inputs, labels = inputs.to(device), labels.to(device)
                     preds = model(inputs)
                     P_SR = model_bpnn(preds)
                     P_HR = model_bpnn(labels)
@@ -172,10 +167,11 @@ def objective(trial):
                 #best_weights = copy.deepcopy(model.state_dict())
         end = time.time() 
         print("Time :", end-start) 
-        cross_bpnn.append(t_bpnn[best_epoch])
-        cross_score.append(t_score[best_epoch])
-        cross_psnr.append(t_psnr[best_epoch])
-    training_info = {"loss_train": tr_score, "loss_val": sum(cross_score)/len(cross_score), "bpnn_train" : tr_bpnn, "bpnn_val": sum(cross_bpnn)/len(cross_bpnn), "psnr": sum(cross_psnr)/len(cross_psnr) }
+        cross_bpnn = cross_bpnn + np.array(t_bpnn)
+        cross_score = cross_score + np.array(t_score)
+        cross_psnr = cross_psnr + np.array(t_psnr)
+    print(tr_score, sum(cross_score)/len(cross_score), tr_bpnn, 
+    training_info = {"loss_train": tr_score, "loss_val": cross_score/args.k_fold, "bpnn_train" : tr_bpnn, "bpnn_val": cross_bpnn/args.k_fold, "psnr": cross_psnr/args.k_fold }
     i=1
     while os.path.exists(os.path.join(args.outputs_dir,"losses_info"+str(i)+".pkl")) == True:
         i=i+1
