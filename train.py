@@ -78,16 +78,17 @@ def objective(trial):
     for train_index, test_index in kf.split(index):
         torch.manual_seed(args.seed)
         model = FSRCNN(scale_factor=args.scale)
+        optimizer = optim.Adam([
+                                {'params': model.first_part.parameters()},
+                                {'params': model.mid_part.parameters()},
+                                {'params': model.last_part.parameters(), 'lr': args.lr * 0.1}
+                                ], lr=args.lr)
         if torch.cuda.device_count() >1:
             model = nn.DataParallel(model) 
         model.to(device)
         criterion = nn.MSELoss()
         Lbpnn =  args.Loss_bpnn()
-        optimizer = optim.Adam([
-            {'params': model.first_part.parameters()},
-            {'params': model.mid_part.parameters()},
-            {'params': model.last_part.parameters(), 'lr': args.lr * 0.1}
-                                ], lr=args.lr)
+
         
         dataset = TrainDataset(args.HR_dir, args.LR_dir)
         train_dataloader = DataLoader(dataset=dataset,
