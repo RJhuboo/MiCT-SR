@@ -52,10 +52,18 @@ def objective(trial):
         os.makedirs(args.outputs_dir)
 
     cudnn.benchmark = True
-    device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
+    
+    if torch.cuda.device_count() > 1:
+        print("Let's use", torch.cuda.device_count())
+        device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    else:
+        device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
     
     model_bpnn = BPNN(args.nof, args.NB_LABEL, n1= args.n1, n2=args.n2, n3=args.n3, k1=3,k2=3,k3=3).to(device)
     model_bpnn.load_state_dict(torch.load(os.path.join(args.checkpoint_bpnn)))
+    if torch.cuda.device_count() > 1:
+        model_bpnn = nn.DataParallel(model_bpnn)
+    model_bpnn.to(device)
     
     for param in model_bpnn.parameters():
         param.requires_grad = False
@@ -69,8 +77,10 @@ def objective(trial):
     cross_bpnn, cross_score, cross_psnr = [], [], []
     for train_index, test_index in kf.split(index):
         torch.manual_seed(args.seed)
-        print('how many times do we start again ?')
-        model = FSRCNN(scale_factor=args.scale).to(device)
+        model = FSRCNN(scale_factor=args.scale)
+        if torch.cuda.device.count() >1:
+            model = nn.DataParallel(model) 
+        model.to(device)
         criterion = nn.MSELoss()
         Lbpnn =  args.Loss_bpnn()
         optimizer = optim.Adam([
