@@ -186,7 +186,8 @@ def objective(trial):
     print("bpnn :",cross_bpnn/args.k_fold)
     print("score :", cross_score/args.k_fold)
     print("psnr :", cross_psnr/args.k_fold)
-    
+    print("tr_score:" , tr_score)
+    print("tr_bpnn:", tr_bpnn)
     training_info = {"loss_train": tr_score, "loss_val": cross_score/args.k_fold, "bpnn_train" : tr_bpnn, "bpnn_val": cross_bpnn/args.k_fold, "psnr": cross_psnr/args.k_fold}
     i=1
     while os.path.exists(os.path.join(args.outputs_dir,"losses_info"+str(i)+".pkl")) == True:
