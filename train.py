@@ -165,7 +165,7 @@ def objective(trial):
                     loss_test = Ltest_SR + (args.alpha * Ltest_BPNN)
                     epoch_losses_test.update(loss_test.item())
                     bpnn_loss_test.update(Ltest_BPNN.item())
-                    psnr.append(calc_psnr(labels, preds))
+                    psnr.append(calc_psnr(labels, preds).item())
             print("##### Test #####")
             print('eval loss: {:.6f}'.format(epoch_losses_test.avg))
             print('bpnn loss: {:.6f}'.format(bpnn_loss_test.avg))
