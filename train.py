@@ -78,7 +78,7 @@ def objective(trial):
     for train_index, test_index in kf.split(index):
         torch.manual_seed(args.seed)
         model = FSRCNN(scale_factor=args.scale)
-        if torch.cuda.device.count() >1:
+        if torch.cuda.device_count() >1:
             model = nn.DataParallel(model) 
         model.to(device)
         criterion = nn.MSELoss()
