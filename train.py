@@ -135,6 +135,8 @@ def objective(trial):
             print("BPNN loss: {:.6f}".format(bpnn_loss.avg))
             print("train loss : {:.6f}".format(epoch_losses.avg))
             #torch.save(model.state_dict(), os.path.join(args.outputs_dir, 'epoch_{}.pth'.format(epoch)))
+            print("epoch_losses type :", type(epoch_losses.avg))
+            print("bpnn_loss", type(bpnn_loss.avg))
             tr_score.append(epoch_losses.avg)
             tr_bpnn.append(bpnn_loss.avg)
             psnr = []
