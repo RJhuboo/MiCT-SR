@@ -94,7 +94,7 @@ def objective(trial):
         best_loss = 10
         t_score, tr_score, tr_bpnn, t_bpnn, t_psnr = [], [] ,[], [], []
         start = time.time()
-        cross_bpnn, cross_score, cross_psnr = [], [], []
+        cross_bpnn, cross_score, cross_psnr = np.zeros(args.num_epochs),np.zeros(args.num_epochs),np.zeros(args.num_epochs)
         
         for epoch in range(args.num_epochs):
             model.train()
