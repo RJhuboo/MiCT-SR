@@ -26,7 +26,7 @@ if __name__ == '__main__':
     parser.add_argument('--LR_dir', type=str,default = "../BPNN/data/LR_trab/train")
     parser.add_argument('--outputs-dir', type=str, default = "./FSRCNN_search")
     parser.add_argument('--checkpoint_bpnn', type= str, default = "BPNN_checkpoint_75.pth")
-    parser.add_argument('--alpha', default = 1e-5)
+    parser.add_argument('--alpha',type=float, default = 1e-5)
     parser.add_argument('--Loss_bpnn', default = MSELoss)
     parser.add_argument('--weights-file', type=str)
     parser.add_argument('--scale', type=int, default=2)
@@ -136,8 +136,8 @@ if __name__ == '__main__':
                 
                 # Backward
                 optimizer.zero_grad()
-                #loss.backward()
-                loss.mean().backward()
+                loss.backward()
+                #loss.mean().backward()
                 optimizer.step()
 
                 t.set_postfix(loss='{:.6f}'.format(epoch_losses.avg))
