@@ -28,7 +28,7 @@ def objective(trial):
     parser.add_argument('--LR_dir', type=str,default = "../BPNN/data/LR_trab/train")
     parser.add_argument('--outputs-dir', type=str, default = "./FSRCNN_search")
     parser.add_argument('--checkpoint_bpnn', type= str, default = "BPNN_checkpoint_75.pth")
-    parser.add_argument('--alpha', default = trial.suggest_loguniform("alpha",1e-5,1e6))
+    parser.add_argument('--alpha', default = trial.suggest_loguniform("alpha",1e-4,1e3))
     parser.add_argument('--Loss_bpnn', default = trial.suggest_categorical("Loss_bpnn",[L1Loss,MSELoss]))
     parser.add_argument('--weights-file', type=str)
     parser.add_argument('--scale', type=int, default=2)
@@ -197,6 +197,6 @@ def objective(trial):
     return min(t_bpnn), max(psnr)
         #torch.save(best_weights, os.path.join(args.outputs_dir, 'best.pth'))
 
-study.optimize(objective,n_trials=7)
+study.optimize(objective,n_trials=20)
 with open("./FSRCNN_BPNN_search.pkl","wb") as f:
     pickle.dump(study,f)
