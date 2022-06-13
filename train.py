@@ -127,6 +127,8 @@ if __name__ == '__main__':
                 # Loss
                 L_SR = criterion(preds, labels)
                 L_BPNN = Lbpnn(P_SR,P_HR)
+                print("LSR:",L_SR)
+                print("LBPNN:",L_BPNN)
                 loss = L_SR + (args.alpha * L_BPNN)
 
                 epoch_losses.update(loss.item(), len(inputs))
@@ -134,8 +136,8 @@ if __name__ == '__main__':
                 
                 # Backward
                 optimizer.zero_grad()
-                loss.backward()
-                #loss.mean().backward()
+                #loss.backward()
+                loss.mean().backward()
                 optimizer.step()
 
                 t.set_postfix(loss='{:.6f}'.format(epoch_losses.avg))
