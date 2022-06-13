@@ -93,8 +93,8 @@ if __name__ == '__main__':
     train_dataloader = DataLoader(dataset=dataset,
                                   batch_size=args.batch_size,
                                   shuffle=True,
-                                  num_workers=args.num_workers,
-                                  pin_memory=True)  
+                                  num_workers=args.num_workers)
+                                  #pin_memory=True)  
 
     best_weights = copy.deepcopy(model.state_dict())
     best_epoch = 0
