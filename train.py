@@ -149,8 +149,10 @@ if __name__ == '__main__':
         print("train loss : {:.6f}".format(epoch_losses.avg))
         
         # Save model
-        torch.save(model.state_dict(), os.path.join(args.outputs_dir, 'epoch_{}.pth'.format(epoch)))
-
+        if torch.cuda.device_count() > 1:
+            torch.save(model.module.state_dict(), os.path.join(args.outputs_dir, 'epoch_{}.pth'.format(epoch)))
+        else:
+            torch.save(model.state_dict(), os.path.join(args.outputs_dir, 'epoch_{}.pth'.format(epoch)))
         tr_score.append(epoch_losses.avg)
         tr_bpnn.append(bpnn_loss.avg)
     
