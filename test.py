@@ -36,9 +36,7 @@ if __name__ == '__main__':
     model.eval()
 
     psnr = []
-    psnr2 = []
     ssim = []
-    ssim2 = []
 
 ## --- TESTING LOOP --- ##
 
