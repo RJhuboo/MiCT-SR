@@ -52,7 +52,7 @@ if __name__ == '__main__':
 
     psnr = []
     ssim = []
-    mse_bpnn = []
+    mse = []
 ## --- TESTING LOOP --- ##
 
     for image_file in os.listdir(args.image_dir):
