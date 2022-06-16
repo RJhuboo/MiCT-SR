@@ -125,11 +125,11 @@ if __name__ == '__main__':
                 P_HR = model_bpnn(labels)
 
                 # Loss
-                L_SR = criterion(preds, labels)
+                loss = criterion(preds, labels)
                 L_BPNN = Lbpnn(P_SR,P_HR)
                 print("LSR:",L_SR)
                 print("LBPNN:",L_BPNN)
-                loss = L_SR + (args.alpha * L_BPNN)
+                #loss = L_SR + (args.alpha * L_BPNN)
 
                 epoch_losses.update(loss.item(), len(inputs))
                 bpnn_loss.update(L_BPNN.item(), len(inputs))
