@@ -7,7 +7,7 @@ import numpy as np
 import PIL.Image as pil_image
 from torch.nn import L1Loss, MSELoss
 
-from models import FSRCNN
+from models import FSRCNN, BPNN
 from utils import convert_ycbcr_to_rgb, preprocess, calc_psnr
 
 
