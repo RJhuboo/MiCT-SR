@@ -74,7 +74,7 @@ if __name__ == '__main__':
             preds = model(lr).clamp(0.0, 1.0)
         
         P_SR = model_bpnn(preds)
-        P_HR = model_bpnn(labels)
+        P_HR = model_bpnn(hr)
         print("BPNN HR :",P_HR,"BPNN SR,",P_SR)
         mse.append(MSELoss(P_SR,P_HR).item())
         
