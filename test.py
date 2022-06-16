@@ -5,6 +5,7 @@ import os
 import torch.backends.cudnn as cudnn
 import numpy as np
 import PIL.Image as pil_image
+from torch.nn import L1Loss, MSELoss
 
 from models import FSRCNN
 from utils import convert_ycbcr_to_rgb, preprocess, calc_psnr
@@ -23,7 +24,15 @@ if __name__ == '__main__':
 
     cudnn.benchmark = True
     device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
-
+    
+    model_bpnn = BPNN(args.nof, args.NB_LABEL, n1= args.n1, n2=args.n2, n3=args.n3, k1=3,k2=3,k3=3).to(device)
+    model_bpnn.load_state_dict(torch.load(os.path.join(args.checkpoint_bpnn)))
+    model_bpnn.to(device)
+    
+    for param in model_bpnn.parameters():
+        param.requires_grad = False
+    model_bpnn.eval()
+    
     model = FSRCNN(scale_factor=args.scale).to(device)
 
     state_dict = model.state_dict()
@@ -37,7 +46,7 @@ if __name__ == '__main__':
 
     psnr = []
     ssim = []
-
+    mse_bpnn = []
 ## --- TESTING LOOP --- ##
 
     for image_file in os.listdir(args.image_dir):
@@ -57,7 +66,12 @@ if __name__ == '__main__':
 
         with torch.no_grad():
             preds = model(lr).clamp(0.0, 1.0)
-
+        
+        P_SR = model_bpnn(preds)
+        P_HR = model_bpnn(labels)
+        print("BPNN HR :",P_HR,"BPNN SR,",P_SR)
+        mse.append(MSELoss(P_SR,P_HR).item())
+        
         psnr.append(calc_psnr(hr, preds))
         #psnr2.append(calc_psnr(hr,savelr))
 
@@ -72,4 +86,5 @@ if __name__ == '__main__':
 
     print('PSNR COMPUTATION ...')
     print('Average PSNR SR : ', sum(psnr)/len(psnr))
+    print('Average MSE :', sum(mse)/len(mse))
     #print('Average PSNR LR : ', sum(psnr2)/len(psnr2))
