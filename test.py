@@ -21,6 +21,7 @@ if __name__ == '__main__':
     parser.add_argument('--n1', type=int,default = 158)
     parser.add_argument('--n2', type=int,default = 211)
     parser.add_argument('--n3', type=int,default = 176)
+    parser.add_argument('--NB_LABEL', type=int,default=6)
     parser.add_argument('--scale', type=int, default=2)
     args = parser.parse_args()
 
