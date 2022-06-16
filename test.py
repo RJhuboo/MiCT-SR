@@ -17,6 +17,7 @@ if __name__ == '__main__':
     parser.add_argument('--image-dir', type=str, required=True)
     parser.add_argument('--label-dir', type=str, required=True)
     parser.add_argument('--output-dir', type=str,required=True)
+    parser.add_argument('--checkpoint_bpnn', type= str, default = "BPNN_checkpoint_75.pth")
     parser.add_argument('--nof', type= int, default = 85)
     parser.add_argument('--n1', type=int,default = 158)
     parser.add_argument('--n2', type=int,default = 211)
