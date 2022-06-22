@@ -71,9 +71,10 @@ def objective(trial):
                        
     #train_dataset = TrainDataset(args.HR_dir,args.LR_dir)
     index = range(NB_DATA)
-    kf = KFold(n_splits = args.k_fold, shuffle=True)
-    kf.get_n_splits(index)
-    
+    if args.k_fold >1:
+        kf = KFold(n_splits = args.k_fold, shuffle=True)
+    else:
+        kf = train_test_split(index,test_size=0.2,random_state=42)
     cross_bpnn, cross_score, cross_psnr = [], [], []
     for train_index, test_index in kf.split(index):
         torch.manual_seed(args.seed)
