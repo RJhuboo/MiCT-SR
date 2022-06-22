@@ -44,7 +44,7 @@ if __name__ == '__main__':
     parser.add_argument('--k_fold', type=int, default = 5)
     args = parser.parse_args()
 
-    args.outputs_dir = os.path.join(args.outputs_dir, 'BPNN_training_x{}'.format(args.scale))
+    args.outputs_dir = os.path.join(args.outputs_dir, 'woBPNN_training_x{}'.format(args.scale))
     
     if not os.path.exists(args.outputs_dir):
         os.makedirs(args.outputs_dir)
@@ -127,7 +127,7 @@ if __name__ == '__main__':
                 # Loss
                 loss = criterion(preds, labels)
                 L_BPNN = Lbpnn(P_SR,P_HR)
-                print("LSR:",L_SR)
+                print("LSR:",loss)
                 print("LBPNN:",L_BPNN)
                 #loss = L_SR + (args.alpha * L_BPNN)
 

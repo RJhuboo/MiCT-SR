@@ -75,7 +75,6 @@ if __name__ == '__main__':
         
         P_SR = model_bpnn(preds)
         P_HR = model_bpnn(hr)
-        print("BPNN HR :",P_HR,"BPNN SR,",P_SR)
         Loss = MSELoss()
         mse.append(Loss(P_SR,P_HR).item())
         
