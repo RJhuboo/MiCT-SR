@@ -195,10 +195,15 @@ def objective(trial):
     with open( os.path.join(args.outputs_dir,"losses_info"+str(i)+".pkl"), "wb") as f:
         pickle.dump(training_info,f)
     print('best epoch: {}, loss: {:.6f}'.format(best_epoch, best_loss))
-    return {"bpnn" :min(t_bpnn), "psnr":max(psnr), "alpha":args.alpha[trial]}
+    return min(t_bpnn), max(psnr), args.alpha[trial]
         #torch.save(best_weights, os.path.join(args.outputs_dir, 'best.pth'))
 
-for trial in range(9):
-    study = objective(trial)
+study= {"bpnn" :[], "psnr": [], "alpha": []}
+for n_trial in range(9):
+    bp,ps,al = objective(n_trial)
+    study["bpnn"].append(bp)
+    study["psnr"].append(ps)
+    study["alpha"].append(al)
+
 with open("./FSRCNN_BPNN_search.pkl","wb") as f:
     pickle.dump(study,f)
