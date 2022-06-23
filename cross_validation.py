@@ -76,7 +76,9 @@ def objective(trial):
     else:
         kf = train_test_split(index,test_size=0.2,random_state=42)
     cross_bpnn, cross_score, cross_psnr = [], [], []
-    for train_index, test_index in kf.split(index):
+    for k in range(args.k_fold):
+        train_index = kf[0]
+        test_index = kf[1]
         torch.manual_seed(args.seed)
         model = FSRCNN(scale_factor=args.scale)
         optimizer = optim.Adam([
