@@ -20,7 +20,6 @@ from utils import AverageMeter, calc_psnr
 import time
 
 NB_DATA = 4474
-study = optuna.create_study(sampler=optuna.samplers.TPESampler(), directions =['minimize','maximize'])
 
 def objective(trial):
     parser = argparse.ArgumentParser()
@@ -28,8 +27,8 @@ def objective(trial):
     parser.add_argument('--LR_dir', type=str,default = "../BPNN/data/LR_trab/train")
     parser.add_argument('--outputs-dir', type=str, default = "./FSRCNN_search")
     parser.add_argument('--checkpoint_bpnn', type= str, default = "BPNN_checkpoint_75.pth")
-    parser.add_argument('--alpha', default = trial.suggest_categorical("alpha",[0,5*10**(-5),10**(-4),5*10**(-3),4*10**(-2),9*10**(-2),5*10**(-1),5*10**(0),5]))
-    parser.add_argument('--Loss_bpnn', default = trial.suggest_categorical("Loss_bpnn",[MSELoss]))
+    parser.add_argument('--alpha', default = [0,5*10**(-5),10**(-4),5*10**(-3),4*10**(-2),9*10**(-2),5*10**(-1),5*10**(0),5])
+    parser.add_argument('--Loss_bpnn', default = MSELoss)
     parser.add_argument('--weights-file', type=str)
     parser.add_argument('--scale', type=int, default=2)
     parser.add_argument('--lr', type=float, default=1e-3)
@@ -63,7 +62,7 @@ def objective(trial):
     model_bpnn.load_state_dict(torch.load(os.path.join(args.checkpoint_bpnn)))
     if torch.cuda.device_count() > 1:
         model_bpnn = nn.DataParallel(model_bpnn)
-    model_bpnn.to(device)
+    model_bpnn.to(device)trial.suggest_uniform('lambda', 0, 2)
     
     for param in model_bpnn.parameters():
         param.requires_grad = False
@@ -130,7 +129,7 @@ def objective(trial):
 
                     L_SR = criterion(preds, labels)
                     L_BPNN = Lbpnn(P_SR,P_HR)
-                    loss = L_SR + (args.alpha * L_BPNN)
+                    loss = L_SR + (args.alpha[trial] * L_BPNN)
 
                     epoch_losses.update(loss.item(), len(inputs))
                     bpnn_loss.update(L_BPNN.item(), len(inputs))
@@ -166,7 +165,7 @@ def objective(trial):
                     preds = model(inputs).clamp(0.0, 1.0)
                     Ltest_SR = criterion(preds, labels)
                     Ltest_BPNN = Lbpnn(P_SR,P_HR)
-                    loss_test = Ltest_SR + (args.alpha * Ltest_BPNN)
+                    loss_test = Ltest_SR + (args.alpha[trial] * Ltest_BPNN)
                     epoch_losses_test.update(loss_test.item())
                     bpnn_loss_test.update(Ltest_BPNN.item())
                     psnr.append(calc_psnr(labels, preds).item())
@@ -196,9 +195,10 @@ def objective(trial):
     with open( os.path.join(args.outputs_dir,"losses_info"+str(i)+".pkl"), "wb") as f:
         pickle.dump(training_info,f)
     print('best epoch: {}, loss: {:.6f}'.format(best_epoch, best_loss))
-    return min(t_bpnn), max(psnr)
+    return {"bpnn" :min(t_bpnn), "psnr":max(psnr), "alpha":args.alpha[trial]}
         #torch.save(best_weights, os.path.join(args.outputs_dir, 'best.pth'))
 
-study.optimize(objective,n_trials=10)
+for trial in range(9):
+    study = objective(trial)
 with open("./FSRCNN_BPNN_search.pkl","wb") as f:
     pickle.dump(study,f)
