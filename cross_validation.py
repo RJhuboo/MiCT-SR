@@ -62,7 +62,7 @@ def objective(trial):
     model_bpnn.load_state_dict(torch.load(os.path.join(args.checkpoint_bpnn)))
     if torch.cuda.device_count() > 1:
         model_bpnn = nn.DataParallel(model_bpnn)
-    model_bpnn.to(device)trial.suggest_uniform('lambda', 0, 2)
+    model_bpnn.to(device)
     
     for param in model_bpnn.parameters():
         param.requires_grad = False
