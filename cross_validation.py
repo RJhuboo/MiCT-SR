@@ -8,6 +8,7 @@ from torch.nn import L1Loss, MSELoss
 import torch.optim as optim
 import torch.backends.cudnn as cudnn
 from torch.utils.data.dataloader import DataLoader
+from skimage.metrics import structural_similarity as ssim
 from tqdm import tqdm
 import optuna
 import joblib
@@ -105,9 +106,9 @@ def objective(trial):
         best_weights = copy.deepcopy(model.state_dict())
         best_epoch = 0
         best_loss = 10
-        t_score, tr_score, tr_bpnn, t_bpnn, t_psnr = [], [] ,[], [], []
+        t_score, tr_score, tr_bpnn, t_bpnn, t_psnr,t_ssim = [], [] ,[], [], [], []
         start = time.time()
-        cross_bpnn, cross_score, cross_psnr = np.zeros(args.num_epochs),np.zeros(args.num_epochs),np.zeros(args.num_epochs)
+        cross_bpnn, cross_score, cross_psnr, cross_ssim = np.zeros(args.num_epochs),np.zeros(args.num_epochs),np.zeros(args.num_epochs),np.zeros(args.num_epochs)
         
         for epoch in range(args.num_epochs):
             model.train()
@@ -149,6 +150,7 @@ def objective(trial):
             tr_score.append(epoch_losses.avg)
             tr_bpnn.append(bpnn_loss.avg)
             psnr = []
+            ssim_list = []
             model.eval()
             epoch_losses_test = AverageMeter()
             bpnn_loss_test = AverageMeter()
@@ -169,12 +171,14 @@ def objective(trial):
                     epoch_losses_test.update(loss_test.item())
                     bpnn_loss_test.update(Ltest_BPNN.item())
                     psnr.append(calc_psnr(labels, preds).item())
+                    ssim_list.append(ssim(labels,preds, data_range=preds.max() - preds.min()).item())
             print("##### Test #####")
             print('eval loss: {:.6f}'.format(epoch_losses_test.avg))
             print('bpnn loss: {:.6f}'.format(bpnn_loss_test.avg))
             t_score.append(epoch_losses_test.avg)
             t_bpnn.append(bpnn_loss_test.avg)
             t_psnr.append(sum(psnr)/len(psnr))
+            t_ssim.append(sum(ssim_list)/len(ssim_list))
             if epoch_losses_test.avg < best_loss:
                 best_epoch = epoch
                 best_loss = epoch_losses_test.avg
@@ -184,26 +188,29 @@ def objective(trial):
         cross_bpnn = cross_bpnn + np.array(t_bpnn)
         cross_score = cross_score + np.array(t_score)
         cross_psnr = cross_psnr + np.array(t_psnr)
+        cross_ssim = cross_ssim + np.array(t_ssim)
     print("bpnn :",cross_bpnn/args.k_fold)
     print("score :", cross_score/args.k_fold)
     print("psnr :", cross_psnr/args.k_fold)
+    print("ssim :", cross_ssim/args.k_fold)
     print("tr_bpnn:", tr_bpnn)
-    training_info = {"loss_train": tr_score, "loss_val": cross_score/args.k_fold, "bpnn_train" : tr_bpnn, "bpnn_val": cross_bpnn/args.k_fold, "psnr": cross_psnr/args.k_fold}
+    training_info = {"loss_train": tr_score, "loss_val": cross_score/args.k_fold, "bpnn_train" : tr_bpnn, "bpnn_val": cross_bpnn/args.k_fold, "psnr": cross_psnr/args.k_fold, "ssim":cross_ssim/args.k_fold}
     i=1
     while os.path.exists(os.path.join(args.outputs_dir,"losses_info"+str(i)+".pkl")) == True:
         i=i+1
     with open( os.path.join(args.outputs_dir,"losses_info"+str(i)+".pkl"), "wb") as f:
         pickle.dump(training_info,f)
     print('best epoch: {}, loss: {:.6f}'.format(best_epoch, best_loss))
-    return min(t_bpnn), max(psnr), args.alpha[trial]
+    return np.min(cross_bpnn/args.k_fold), np.max(t_psnr/args.k_fold), args.alpha[trial], np.max(cross_ssim/args.k_fold)
         #torch.save(best_weights, os.path.join(args.outputs_dir, 'best.pth'))
 
-study= {"bpnn" :[], "psnr": [], "alpha": []}
+study= {"bpnn" :[], "psnr": [], "alpha": [],"ssim":[]}
 for n_trial in range(8):
-    bp,ps,al = objective(n_trial)
+    bp,ps,al,ss = objective(n_trial)
     study["bpnn"].append(bp)
     study["psnr"].append(ps)
     study["alpha"].append(al)
+    study["ssim"].append(ss)
 
 with open("./FSRCNN_BPNN_2_search.pkl","wb") as f:
     pickle.dump(study,f)
