@@ -27,7 +27,7 @@ def objective(trial):
     parser.add_argument('--LR_dir', type=str,default = "../BPNN/data/LR_trab/train")
     parser.add_argument('--outputs-dir', type=str, default = "./FSRCNN_search")
     parser.add_argument('--checkpoint_bpnn', type= str, default = "BPNN_checkpoint_75.pth")
-    parser.add_argument('--alpha', default = [0,5*10**(-5),10**(-4),5*10**(-3),4*10**(-2),9*10**(-2),5*10**(-1),5*10**(0),5])
+    parser.add_argument('--alpha', default = [0,5*10**(-5),10**(-4),2.5*10**(-4),5*10**(-4),10**(-3),5*10**(-3),4*10**(-2)])
     parser.add_argument('--Loss_bpnn', default = MSELoss)
     parser.add_argument('--weights-file', type=str)
     parser.add_argument('--scale', type=int, default=2)
@@ -45,7 +45,7 @@ def objective(trial):
     parser.add_argument('--k_fold', type=int, default = 1)
     args = parser.parse_args()
 
-    args.outputs_dir = os.path.join(args.outputs_dir, 'BPNN_first_shot_x{}'.format(args.scale))
+    args.outputs_dir = os.path.join(args.outputs_dir, 'BPNN_first_shot_3_x{}'.format(args.scale))
     
     if os.path.exists(args.outputs_dir) == False:
         os.makedirs(args.outputs_dir)
@@ -199,11 +199,11 @@ def objective(trial):
         #torch.save(best_weights, os.path.join(args.outputs_dir, 'best.pth'))
 
 study= {"bpnn" :[], "psnr": [], "alpha": []}
-for n_trial in range(9):
+for n_trial in range(8):
     bp,ps,al = objective(n_trial)
     study["bpnn"].append(bp)
     study["psnr"].append(ps)
     study["alpha"].append(al)
 
-with open("./FSRCNN_BPNN_search.pkl","wb") as f:
+with open("./FSRCNN_BPNN_2_search.pkl","wb") as f:
     pickle.dump(study,f)
