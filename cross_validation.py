@@ -8,7 +8,7 @@ from torch.nn import L1Loss, MSELoss
 import torch.optim as optim
 import torch.backends.cudnn as cudnn
 from torch.utils.data.dataloader import DataLoader
-from skimage.metrics import structural_similarity as ssim
+import pytorch_ssim
 from tqdm import tqdm
 import optuna
 import joblib
@@ -171,7 +171,7 @@ def objective(trial):
                     epoch_losses_test.update(loss_test.item())
                     bpnn_loss_test.update(Ltest_BPNN.item())
                     psnr.append(calc_psnr(labels, preds).item())
-                    ssim_list.append(ssim(labels,preds, data_range=preds.max() - preds.min()).item())
+                    ssim_list.append(pytorch_ssim.ssim(labels, preds).data[0])
             print("##### Test #####")
             print('eval loss: {:.6f}'.format(epoch_losses_test.avg))
             print('bpnn loss: {:.6f}'.format(bpnn_loss_test.avg))
