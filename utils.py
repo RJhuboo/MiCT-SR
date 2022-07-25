@@ -65,9 +65,14 @@ def calc_psnr(img1,img2,directory,name):
     name = name[0].replace("png","bmp")
     mask = io.imread(os.path.join(directory,name))
     mask = mask / mask.max()
-    img1 = img1.cpu() * mask
-    img2 = img2.cpu() * mask
-    return 10. * torch.log10(1. / torch.mean((img1 - img2) ** 2))
+    N = 0
+    for i in range(512):
+        for j in range(512):
+            if mask[i][j] == 1:
+                N = N+1
+                MSE = MSE + ((img1[i][j] - img2[i][j])**2) 
+    return 10. * torch.log10(1. / (MSE/N))
+
 def calc_ssim(img1,img2, directory, name):
     name = name[0].replace("png","bmp")
     mask = io.imread(os.path.join(directory,name))
