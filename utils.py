@@ -61,10 +61,10 @@ def preprocess(img, device):
 
     
 def calc_psnr(img1, img2, directory, name):
-    name = name.replace("png","bmp")
+    name = name[0].replace("png","bmp")
     mask = io.imread(os.path.join(directory,name))
-    img1 = img1 * mask
-    img2 = img2 * mask
+    img1 = img1.cpu() * mask
+    img2 = img2.cpu() * mask
     return 10. * torch.log10(1. / torch.mean((img1 - img2) ** 2))
 
 

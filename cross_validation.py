@@ -53,7 +53,7 @@ def objective(trial):
     parser.add_argument('--k_fold', type=int, default = 1)
     args = parser.parse_args()
 
-    args.outputs_dir = os.path.join(args.outputs_dir, 'BPNN_first_shot_3_x{}'.format(args.scale))
+    args.outputs_dir = os.path.join(args.outputs_dir, 'BPNN_psnr_mask_x{}'.format(args.scale))
     
     if os.path.exists(args.outputs_dir) == False:
         os.makedirs(args.outputs_dir)
@@ -163,7 +163,7 @@ def objective(trial):
             bpnn_loss_test = AverageMeter()
             for data in eval_dataloader:
                 inputs, labels, imagename = data
-
+                print("image name", imagename[0])
                 inputs = inputs.reshape(inputs.size(0),1,256,256)
                 labels = labels.reshape(labels.size(0),1,512,512)
                 inputs, labels = inputs.float(), labels.float()
