@@ -18,7 +18,7 @@ from sklearn.model_selection import train_test_split
 from sklearn.model_selection import KFold
 from models import FSRCNN, BPNN
 from datasets import TrainDataset
-from utils import AverageMeter, metrics
+from utils import AverageMeter, calc_psnr, calc_ssim
 import time
 
 NB_DATA = 4474
@@ -172,10 +172,9 @@ def objective(trial):
                     loss_test = Ltest_SR + (args.alpha[trial] * Ltest_BPNN)
                     epoch_losses_test.update(loss_test.item())
                     bpnn_loss_test.update(Ltest_BPNN.item())
-                    psnr_ssim = metrics(labels,preds,args.mask_dir,imagename)
-                    psnr.append(psnr_ssim.calc_psnr)
-                    print(psnr)
-                    ssim_list.append(psnr_ssim.calc_ssim)
+                    psnr_ssim = metrics()
+                    psnr.append(psnr_ssim.calc_psnr(labels,preds,args.mask_dir,imagename).item())
+                    ssim_list.append(psnr_ssim.calc_ssim(labels,preds,args.mask_dir,imagename))
             print("##### Test #####")
             print('eval loss: {:.6f}'.format(epoch_losses_test.avg))
             print('bpnn loss: {:.6f}'.format(bpnn_loss_test.avg))
