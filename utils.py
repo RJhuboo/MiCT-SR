@@ -60,24 +60,18 @@ def preprocess(img, device):
     return x
 
 
-    
-def calc_psnr(img1, img2, directory, name):
-    name = name[0].replace("png","bmp")
-    mask = io.imread(os.path.join(directory,name))
-    mask = mask / mask.max()
-    img1 = img1.cpu() * mask
-    img2 = img2.cpu() * mask
-    return 10. * torch.log10(1. / torch.mean((img1 - img2) ** 2))
+class metrics:
+    def __init__(self,img1,img2,directory,name):
+        name = name[0].replace("png","bmp")
+        mask = io.imread(os.path.join(directory,name))
+        mask = mask / mask.max()
+        self.img1 = img1.cpu() * self.mask
+        self.img2 = img2.cpu() * self.mask
+    def calc_psnr(img1, img2, directory, name):
+        return 10. * torch.log10(1. / torch.mean((img1 - img2) ** 2))
+    def calc_ssim(real, fake, directory, name):
+        return pytorch_ssim.ssim(real,fake).cpu().detach().numpy()
 
-
-def metrics(real, fake, directory, name):
-    name = name[0].replace("png","bmp")
-    mask = io.imread(os.path.join(directory,name))
-    mask = mask / mask.max()
-    real = real.cpu() * mask
-    fake = fake.cpu() * mask
-    ssim_value = pytorch_ssim.ssim(real,fake).cpu().detach().numpy()
-    return ssim_value
 
 class AverageMeter(object):
     def __init__(self):
