@@ -15,7 +15,7 @@ class TrainDataset(Dataset):
         HR_path, LR_path = os.path.join(self.HR_dir,all_images[idx]), os.path.join(self.LR_dir,all_images[idx])
         HR = io.imread(HR_path) / 255
         LR = io.imread(LR_path) / 255
-        return LR, HR, imagename
+        return LR, HR, all_images[idx]
         
     def __len__(self):
         all_images = os.listdir(self.HR_dir)
