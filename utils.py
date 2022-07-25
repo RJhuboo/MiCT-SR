@@ -2,6 +2,7 @@ import torch
 import numpy as np
 from skimage import io
 import os
+import pytorch_ssim
 
 def calc_patch_size(func):
     def wrapper(args):
@@ -63,12 +64,17 @@ def preprocess(img, device):
 def calc_psnr(img1, img2, directory, name):
     name = name[0].replace("png","bmp")
     mask = io.imread(os.path.join(directory,name))
+    print("max du mask", mask.max())
     img1 = img1.cpu() * mask
     img2 = img2.cpu() * mask
     return 10. * torch.log10(1. / torch.mean((img1 - img2) ** 2))
 
 
 def metrics(real, fake):
+    name = name[0].replace("png","bmp")
+    mask = io.imread(os.path.join(directory,name))
+    img1 = img1.cpu() * mask
+    img2 = img2.cpu() * mask
     ssim_value = pytorch_ssim.ssim(real,fake).cpu().detach().numpy()
     return ssim_value
 
