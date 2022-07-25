@@ -65,8 +65,8 @@ class metrics:
         name = name[0].replace("png","bmp")
         mask = io.imread(os.path.join(directory,name))
         mask = mask / mask.max()
-        self.img1 = img1.cpu() * self.mask
-        self.img2 = img2.cpu() * self.mask
+        self.img1 = img1.cpu() * mask
+        self.img2 = img2.cpu() * mask
     def calc_psnr(self):
         return 10. * torch.log10(1. / torch.mean((self.img1 - self.img2) ** 2))
     def calc_ssim(self):
