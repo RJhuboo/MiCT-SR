@@ -68,6 +68,10 @@ def calc_psnr(img1, img2, directory, name):
     return 10. * torch.log10(1. / torch.mean((img1 - img2) ** 2))
 
 
+def metrics(real, fake):
+    ssim_value = pytorch_ssim.ssim(real,fake).cpu().detach().numpy()
+    return ssim_value
+
 class AverageMeter(object):
     def __init__(self):
         self.reset()
