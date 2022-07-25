@@ -1,3 +1,4 @@
+from torch.autograd import Variable
 import argparse
 import os
 import copy
@@ -21,6 +22,11 @@ from utils import AverageMeter, calc_psnr
 import time
 
 NB_DATA = 4474
+
+
+def metrics(real, fake):
+    ssim_value = pytorch_ssim.ssim(real,fake).cpu().detach().numpy()
+    return ssim_value
 
 def objective(trial):
     parser = argparse.ArgumentParser()
@@ -171,7 +177,7 @@ def objective(trial):
                     epoch_losses_test.update(loss_test.item())
                     bpnn_loss_test.update(Ltest_BPNN.item())
                     psnr.append(calc_psnr(labels, preds).item())
-                    ssim_list.append(pytorch_ssim.ssim(labels, preds).data[0])
+                    ssim_list.append(metrics(labels, preds))
             print("##### Test #####")
             print('eval loss: {:.6f}'.format(epoch_losses_test.avg))
             print('bpnn loss: {:.6f}'.format(bpnn_loss_test.avg))
