@@ -125,7 +125,7 @@ def objective(trial):
                 t.set_description('epoch: {}/{}'.format(epoch, args.num_epochs - 1))
 
                 for data in train_dataloader:
-                    inputs, labels = data
+                    inputs, labels, _ = data
                     inputs = inputs.reshape(inputs.size(0),1,256,256)
                     labels = labels.reshape(labels.size(0),1,512,512)
                     inputs, labels= inputs.float(), labels.float()
@@ -161,7 +161,7 @@ def objective(trial):
             epoch_losses_test = AverageMeter()
             bpnn_loss_test = AverageMeter()
             for data in eval_dataloader:
-                inputs, labels = data
+                inputs, labels, imagename = data
 
                 inputs = inputs.reshape(inputs.size(0),1,256,256)
                 labels = labels.reshape(labels.size(0),1,512,512)
@@ -176,7 +176,7 @@ def objective(trial):
                     loss_test = Ltest_SR + (args.alpha[trial] * Ltest_BPNN)
                     epoch_losses_test.update(loss_test.item())
                     bpnn_loss_test.update(Ltest_BPNN.item())
-                    psnr.append(calc_psnr(labels, preds).item())
+                    psnr.append(calc_psnr(labels, preds, imagename).item())
                     ssim_list.append(metrics(labels, preds))
             print("##### Test #####")
             print('eval loss: {:.6f}'.format(epoch_losses_test.avg))
