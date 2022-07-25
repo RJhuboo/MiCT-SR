@@ -67,10 +67,10 @@ class metrics:
         mask = mask / mask.max()
         self.img1 = img1.cpu() * self.mask
         self.img2 = img2.cpu() * self.mask
-    def calc_psnr:
-        return 10. * torch.log10(1. / torch.mean((img1 - img2) ** 2))
-    def calc_ssim:
-        return pytorch_ssim.ssim(real,fake).cpu().detach().numpy()
+    def calc_psnr(self):
+        return 10. * torch.log10(1. / torch.mean((self.img1 - self.img2) ** 2))
+    def calc_ssim(self):
+        return pytorch_ssim.ssim(self.img1,self.img2).cpu().detach().numpy()
 
 
 class AverageMeter(object):
