@@ -32,6 +32,7 @@ def objective(trial):
     parser = argparse.ArgumentParser()
     parser.add_argument('--HR_dir', type=str,default = "../BPNN/data/ROI_trab/train")
     parser.add_argument('--LR_dir', type=str,default = "../BPNN/data/LR_trab/train")
+    parser.add_argument('--mask_dir', type=str,default = "../BPNN/data/mask_trab/train")
     parser.add_argument('--outputs-dir', type=str, default = "./FSRCNN_search")
     parser.add_argument('--checkpoint_bpnn', type= str, default = "BPNN_checkpoint_75.pth")
     parser.add_argument('--alpha', default = [0,5*10**(-5),10**(-4),2.5*10**(-4),5*10**(-4),10**(-3),5*10**(-3),4*10**(-2)])
