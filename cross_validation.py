@@ -31,7 +31,7 @@ def objective(trial):
     parser.add_argument('--mask_dir', type=str,default = "../BPNN/data/mask_trab/train")
     parser.add_argument('--outputs-dir', type=str, default = "./FSRCNN_search")
     parser.add_argument('--checkpoint_bpnn', type= str, default = "BPNN_checkpoint_75.pth")
-    parser.add_argument('--alpha', default = [0,5*10**(-5),10**(-4),2.5*10**(-4),5*10**(-4),10**(-3),5*10**(-3),4*10**(-2)])
+    parser.add_argument('--alpha', default = [0,5*10**(-5),10**(-4),2.5*10**(-4),5*10**(-4),10**(-3),5*10**(-3),4*10**(-2),10**(-1),1])
     parser.add_argument('--Loss_bpnn', default = MSELoss)
     parser.add_argument('--weights-file', type=str)
     parser.add_argument('--scale', type=int, default=2)
@@ -159,7 +159,6 @@ def objective(trial):
             bpnn_loss_test = AverageMeter()
             for data in eval_dataloader:
                 inputs, labels, imagename = data
-                print("image name", imagename[0])
                 inputs = inputs.reshape(inputs.size(0),1,256,256)
                 labels = labels.reshape(labels.size(0),1,512,512)
                 inputs, labels = inputs.float(), labels.float()
@@ -215,5 +214,5 @@ for n_trial in range(8):
     study["alpha"].append(al)
     study["ssim"].append(ss)
 
-with open("./FSRCNN_BPNN_2_search.pkl","wb") as f:
+with open("./FSRCNN_mask.pkl","wb") as f:
     pickle.dump(study,f)
