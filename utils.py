@@ -67,9 +67,9 @@ class metrics:
         mask = mask / mask.max()
         self.img1 = img1.cpu() * self.mask
         self.img2 = img2.cpu() * self.mask
-    def calc_psnr(img1, img2, directory, name):
+    def calc_psnr:
         return 10. * torch.log10(1. / torch.mean((img1 - img2) ** 2))
-    def calc_ssim(real, fake, directory, name):
+    def calc_ssim:
         return pytorch_ssim.ssim(real,fake).cpu().detach().numpy()
 
 
