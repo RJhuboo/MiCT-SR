@@ -73,13 +73,13 @@ def calc_psnr(img1,img2,directory,name):
                 MSE = MSE + ((img1[i][j] - img2[i][j])**2) 
     return 10. * torch.log10(1. / (MSE/N))
 
-def calc_ssim(img1,img2, directory, name):
-    name = name[0].replace("png","bmp")
-    mask = io.imread(os.path.join(directory,name))
-    mask = mask / mask.max()
-    img1 = img1.cpu() * mask
-    img2 = img2.cpu() * mask
-    return pytorch_ssim.ssim(img1,img2).cpu().detach().numpy()
+#def calc_ssim(img1,img2, directory, name):
+#    name = name[0].replace("png","bmp")
+#    mask = io.imread(os.path.join(directory,name))
+#    mask = mask / mask.max()
+#    img1 = img1.cpu() * mask
+#    img2 = img2.cpu() * mask
+#    return pytorch_ssim.ssim(img1,img2).cpu().detach().numpy()
 
 
 class AverageMeter(object):
