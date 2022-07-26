@@ -64,7 +64,7 @@ def ssim(x: torch.Tensor, y: torch.Tensor, kernel_size: int = 11, kernel_sigma: 
 
     kernel = gaussian_filter(kernel_size, kernel_sigma).repeat(x.size(1), 1, 1, 1).to(y)
     _compute_ssim_per_channel = _ssim_per_channel_complex if x.dim() == 5 else _ssim_per_channel
-    ssim_map, cs_map = _compute_ssim_per_channel(x=x, y=y,mask=mask, kernel=kernel, data_range=data_range, k1=k1, k2=k2)
+    ssim_map, cs_map = _compute_ssim_per_channel(x=x, y=y,mask=mask, kernel=kernel, data_range=data_range, k1=k1, k2=k2, device =device)
     ssim_val = ssim_map
     cs = cs_map
     
@@ -82,7 +82,7 @@ def ssim(x: torch.Tensor, y: torch.Tensor, kernel_size: int = 11, kernel_sigma: 
 
 def _ssim_per_channel(x: torch.Tensor, y: torch.Tensor, mask: torch.Tensor, kernel: torch.Tensor,
                       data_range: Union[float, int] = 1., k1: float = 0.01,
-                      k2: float = 0.03) -> Union[torch.Tensor, Tuple[torch.Tensor, torch.Tensor]]:
+                      k2: float = 0.03, device: type="cpu" ) -> Union[torch.Tensor, Tuple[torch.Tensor, torch.Tensor]]:
     r"""Calculate Structural Similarity (SSIM) index for X and Y per channel.
     Args:
         x: An input tensor. Shape :math:`(N, C, H, W)`.
@@ -130,8 +130,8 @@ def _ssim_per_channel(x: torch.Tensor, y: torch.Tensor, mask: torch.Tensor, kern
     
     # MASK by rehan 
 
-    cs = cs * mask[:,:,5:-5,5:-5]
-    ss = ss * mask[:,:,5:-5,5:-5]
+    cs = cs.to("cpu") * mask[:,:,5:-5,5:-5].to("cpu")
+    ss = ss.to("cpu") * mask[:,:,5:-5,5:-5].to("cpu")
 
     #ssim_val = ss.mean(dim=(-1, -2))
     ssim_val = torch.sum(ss) / torch.sum(mask[:,:,5:-5,5:-5])
