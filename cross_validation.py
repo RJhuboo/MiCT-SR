@@ -18,7 +18,8 @@ from sklearn.model_selection import train_test_split
 from sklearn.model_selection import KFold
 from models import FSRCNN, BPNN
 from datasets import TrainDataset
-from utils import AverageMeter, calc_psnr, calc_ssim
+from utils import AverageMeter, calc_psnr
+from ssim import ssim
 import time
 
 NB_DATA = 4474
@@ -31,7 +32,7 @@ def objective(trial):
     parser.add_argument('--mask_dir', type=str,default = "../BPNN/data/mask_trab/train")
     parser.add_argument('--outputs-dir', type=str, default = "./FSRCNN_search")
     parser.add_argument('--checkpoint_bpnn', type= str, default = "BPNN_checkpoint_75.pth")
-    parser.add_argument('--alpha', default = [0,5*10**(-5),10**(-4),2.5*10**(-4),5*10**(-4),10**(-3),5*10**(-3),4*10**(-2),10**(-1),1])
+    parser.add_argument('--alpha', default = [0,10**(-3),10**(-4),2.5*10**(-4),10**(-1),5*10**(-4),5*10**(-3),4*10**(-2),1,5*10**(-5)])
     parser.add_argument('--Loss_bpnn', default = MSELoss)
     parser.add_argument('--weights-file', type=str)
     parser.add_argument('--scale', type=int, default=2)
@@ -173,7 +174,7 @@ def objective(trial):
                     epoch_losses_test.update(loss_test.item())
                     bpnn_loss_test.update(Ltest_BPNN.item())
                     psnr.append(calc_psnr(labels,preds,args.mask_dir,imagename).item())
-                    ssim_list.append(calc_ssim(labels,preds,args.mask_dir,imagename))
+                    ssim_list.append(ssim(x=labels,y=preds,data_range=1.,downsample=False))
             print("##### Test #####")
             print('eval loss: {:.6f}'.format(epoch_losses_test.avg))
             print('bpnn loss: {:.6f}'.format(bpnn_loss_test.avg))
@@ -209,7 +210,7 @@ def objective(trial):
         #torch.save(best_weights, os.path.join(args.outputs_dir, 'best.pth'))
 
 study= {"bpnn" :[], "psnr": [], "alpha": [],"ssim":[]}
-for n_trial in range(8):
+for n_trial in range(10):
     bp,ps,al,ss = objective(n_trial)
     study["bpnn"].append(bp)
     study["psnr"].append(ps)
