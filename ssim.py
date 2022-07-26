@@ -13,6 +13,7 @@ from torch.nn.modules.loss import _Loss
 
 from piq.utils import _validate_input, _reduce
 from piq.functional import gaussian_filter
+import io
 
 
 def ssim(x: torch.Tensor, y: torch.Tensor, kernel_size: int = 11, kernel_sigma: float = 1.5,
