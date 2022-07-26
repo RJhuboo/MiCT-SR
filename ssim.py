@@ -13,12 +13,12 @@ from torch.nn.modules.loss import _Loss
 
 from piq.utils import _validate_input, _reduce
 from piq.functional import gaussian_filter
-import io
-
+from skimage import io
+import os
 
 def ssim(x: torch.Tensor, y: torch.Tensor, kernel_size: int = 11, kernel_sigma: float = 1.5,
          data_range: Union[int, float] = 1., reduction: str = 'mean', full: bool = False,
-         downsample: bool = True, k1: float = 0.01, k2: float = 0.03, directory: str = '', maskname: str='') -> List[torch.Tensor]:
+         downsample: bool = True, k1: float = 0.01, k2: float = 0.03, directory: str = '', maskname: str='', device: type='cpu') -> List[torch.Tensor]:
     r"""Interface of Structural Similarity (SSIM) index.
     Inputs supposed to be in range ``[0, data_range]``.
     To match performance with skimage and tensorflow set ``'downsample' = True``.
@@ -64,14 +64,15 @@ def ssim(x: torch.Tensor, y: torch.Tensor, kernel_size: int = 11, kernel_sigma: 
 
     kernel = gaussian_filter(kernel_size, kernel_sigma).repeat(x.size(1), 1, 1, 1).to(y)
     _compute_ssim_per_channel = _ssim_per_channel_complex if x.dim() == 5 else _ssim_per_channel
-    ssim_map, cs_map = _compute_ssim_per_channel(x=x, y=y, kernel=kernel, data_range=data_range, k1=k1, k2=k2)
-    print(ssim_map)
-    print(ssim_map.size())
-    ssim_val = ssim_map.mean(1)
-    cs = cs_map.mean(1)
+    ssim_map, cs_map = _compute_ssim_per_channel(x=x, y=y, kernel=kernel, data_range=data_range, k1=k1, k2=k2,mask=mask)
+    ssim_val = ssim_map
+    cs = cs_map
+    
+    #ssim_val = ssim_map.mean(1)
+    #cs = cs_map.mean(1)
 
-    ssim_val = _reduce(ssim_val, reduction)
-    cs = _reduce(cs, reduction)
+    #ssim_val = _reduce(ssim_val, reduction)
+    #cs = _reduce(cs, reduction)
 
     if full:
         return [ssim_val, cs]
@@ -81,7 +82,7 @@ def ssim(x: torch.Tensor, y: torch.Tensor, kernel_size: int = 11, kernel_sigma: 
 
 def _ssim_per_channel(x: torch.Tensor, y: torch.Tensor, kernel: torch.Tensor,
                       data_range: Union[float, int] = 1., k1: float = 0.01,
-                      k2: float = 0.03) -> Union[torch.Tensor, Tuple[torch.Tensor, torch.Tensor]]:
+                      k2: float = 0.03, mask: torch.Tensor) -> Union[torch.Tensor, Tuple[torch.Tensor, torch.Tensor]]:
     r"""Calculate Structural Similarity (SSIM) index for X and Y per channel.
     Args:
         x: An input tensor. Shape :math:`(N, C, H, W)`.
@@ -112,14 +113,30 @@ def _ssim_per_channel(x: torch.Tensor, y: torch.Tensor, kernel: torch.Tensor,
     sigma_yy = F.conv2d(y ** 2, weight=kernel, stride=1, padding=0, groups=n_channels) - mu_yy
     sigma_xy = F.conv2d(x * y, weight=kernel, stride=1, padding=0, groups=n_channels) - mu_xy
 
+    # Apply mask by rehan
+    #sigma_xx = sigma_xx * mask[:,:,5:-5,5:-5]
+    #sigma_yy = sigma_yy * mask[:,:,5:-5,5:-5]
+    #sigma_xy = sigma_xy * mask[:,:,5:-5,5:-5]
+
+    #mu_xx = mu_xx * mask[:,:,5:-5,5:-5]
+    #mu_yy = mu_yy * mask[:,:,5:-5,5:-5]
+    #mu_xy = mu_xy * mask[:,:,5:-5,5:-5]
+
     # Contrast sensitivity (CS) with alpha = beta = gamma = 1.
     cs = (2. * sigma_xy + c2) / (sigma_xx + sigma_yy + c2)
 
     # Structural similarity (SSIM)
     ss = (2. * mu_xy + c1) / (mu_xx + mu_yy + c1) * cs
+    
+    # MASK by rehan 
 
-    ssim_val = ss.mean(dim=(-1, -2))
-    cs = cs.mean(dim=(-1, -2))
+    cs = cs * mask[:,:,5:-5,5:-5]
+    ss = ss * mask[:,:,5:-5,5:-5]
+
+    #ssim_val = ss.mean(dim=(-1, -2))
+    ssim_val = torch.sum(ss) / torch.sum(mask[:,:,5:-5,5:-5])
+    # cs = cs.mean(dim=(-1, -2))
+    cs = torch.sum(cs) / torch.sum(mask[:,:,5:-5,5:-5])
     return ssim_val, cs
 
 
