@@ -50,7 +50,7 @@ def ssim(x: torch.Tensor, y: torch.Tensor, kernel_size: int = 11, kernel_sigma: 
     x = x / float(data_range)
     y = y / float(data_range)
          
-    name = name[0].replace("png","bmp")
+    name = maskname[0].replace("png","bmp")
     mask = io.imread(os.path.join(directory,name))
     mask = mask / mask.max()
     mask = torch.reshape(torch.tensor(mask),(1,1,512,512)).to(device)
