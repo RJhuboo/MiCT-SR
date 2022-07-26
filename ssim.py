@@ -17,7 +17,7 @@ from piq.functional import gaussian_filter
 
 def ssim(x: torch.Tensor, y: torch.Tensor, kernel_size: int = 11, kernel_sigma: float = 1.5,
          data_range: Union[int, float] = 1., reduction: str = 'mean', full: bool = False,
-         downsample: bool = True, k1: float = 0.01, k2: float = 0.03) -> List[torch.Tensor]:
+         downsample: bool = True, k1: float = 0.01, k2: float = 0.03, directory: str = '', maskname: str='', device) -> List[torch.Tensor]:
     r"""Interface of Structural Similarity (SSIM) index.
     Inputs supposed to be in range ``[0, data_range]``.
     To match performance with skimage and tensorflow set ``'downsample' = True``.
@@ -46,10 +46,15 @@ def ssim(x: torch.Tensor, y: torch.Tensor, kernel_size: int = 11, kernel_sigma: 
     """
     assert kernel_size % 2 == 1, f'Kernel size must be odd, got [{kernel_size}]'
     _validate_input([x, y], dim_range=(4, 5), data_range=(0, data_range))
-
+    
     x = x / float(data_range)
     y = y / float(data_range)
-
+         
+    name = name[0].replace("png","bmp")
+    mask = io.imread(os.path.join(directory,name))
+    mask = mask / mask.max()
+    mask = torch.reshape(torch.tensor(mask),(1,1,512,512)).to(device)
+    
     # Averagepool image if the size is large enough
     f = max(1, round(min(x.size()[-2:]) / 256))
     if (f > 1) and downsample:
@@ -59,6 +64,8 @@ def ssim(x: torch.Tensor, y: torch.Tensor, kernel_size: int = 11, kernel_sigma: 
     kernel = gaussian_filter(kernel_size, kernel_sigma).repeat(x.size(1), 1, 1, 1).to(y)
     _compute_ssim_per_channel = _ssim_per_channel_complex if x.dim() == 5 else _ssim_per_channel
     ssim_map, cs_map = _compute_ssim_per_channel(x=x, y=y, kernel=kernel, data_range=data_range, k1=k1, k2=k2)
+    print(ssim_map)
+    print(ssim_map.size())
     ssim_val = ssim_map.mean(1)
     cs = cs_map.mean(1)
 
