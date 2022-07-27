@@ -44,7 +44,7 @@ if __name__ == '__main__':
     parser.add_argument('--k_fold', type=int, default = 5)
     args = parser.parse_args()
 
-    args.outputs_dir = os.path.join(args.outputs_dir, 'woBPNN_training_x{}'.format(args.scale))
+    args.outputs_dir = os.path.join(args.outputs_dir, 'BPNN_mask_training_x{}'.format(args.scale))
     
     if not os.path.exists(args.outputs_dir):
         os.makedirs(args.outputs_dir)
