@@ -59,8 +59,6 @@ if __name__ == '__main__':
     for image_file in os.listdir(args.image_dir):
         image = pil_image.open(os.path.join(args.image_dir,image_file))
         image2 = pil_image.open(os.path.join(args.label_dir,image_file))
-        maskname = image_file.replace(".png",".bmp")
-        mask = pil_image.open(os.path.join(args.mask_dir,maskname))
         image_width = (image.width // args.scale) * args.scale
         image_height = (image.height // args.scale) * args.scale
 
@@ -71,6 +69,7 @@ if __name__ == '__main__':
        
         lr = preprocess(lr, device)
         hr= preprocess(hr, device)
+        
         #savelr = preprocess(image,device)
 
         with torch.no_grad():
@@ -81,7 +80,8 @@ if __name__ == '__main__':
         Loss = MSELoss()
         mse.append(Loss(P_SR,P_HR).item())
         
-        psnr.append(calc_psnr(hr, preds))
+        psnr.append(calc_psnr(hr, preds, args.mask_dir, image_file))
+        ssim.append(ssim(hr, preds, args.mask_dir, image_file))
         #psnr2.append(calc_psnr(hr,savelr))
 
         preds = preds.mul(255.0).cpu().numpy().squeeze(0).squeeze(0)
@@ -94,6 +94,7 @@ if __name__ == '__main__':
         output.save(os.path.join(directory, name_save))
 
     print('PSNR COMPUTATION ...')
-    print('Average PSNR SR : ', sum(psnr)/len(psnr))
+    print('Average PSNR SR :', sum(psnr)/len(psnr))
     print('Average MSE :', sum(mse)/len(mse))
+    print('Average SSIM SR :', sum(ssim)/len(ssim))
     #print('Average PSNR LR : ', sum(psnr2)/len(psnr2))
