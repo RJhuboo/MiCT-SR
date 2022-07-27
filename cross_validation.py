@@ -194,19 +194,15 @@ def objective(trial):
         cross_score = cross_score + np.array(t_score)
         cross_psnr = cross_psnr + np.array(t_psnr)
         cross_ssim = cross_ssim + np.array(t_ssim)
-    print("bpnn :",cross_bpnn/args.k_fold)
-    print("score :", cross_score/args.k_fold)
-    print("psnr :", cross_psnr/args.k_fold)
-    print("ssim :", cross_ssim/args.k_fold)
-    print("tr_bpnn:", tr_bpnn)
-    training_info = {"loss_train": tr_score, "loss_val": cross_score/args.k_fold, "bpnn_train" : tr_bpnn, "bpnn_val": cross_bpnn/args.k_fold, "psnr": cross_psnr/args.k_fold, "ssim":cross_ssim/args.k_fold}
+
+    training_info = {"loss_train": tr_score, "loss_val": cross_score/args.k_fold, "bpnn_train" :tr_bpnn, "bpnn_val": cross_bpnn/args.k_fold, "psnr": cross_psnr/args.k_fold, "ssim":cross_ssim/args.k_fold}
     i=1
     while os.path.exists(os.path.join(args.outputs_dir,"losses_info"+str(i)+".pkl")) == True:
         i=i+1
     with open( os.path.join(args.outputs_dir,"losses_info"+str(i)+".pkl"), "wb") as f:
         pickle.dump(training_info,f)
     print('best epoch: {}, loss: {:.6f}'.format(best_epoch, best_loss))
-    return np.min(cross_bpnn/args.k_fold), np.max(t_psnr/args.k_fold), args.alpha[trial], np.max(cross_ssim/args.k_fold)
+    return np.min(np.array(cross_bpnn)/args.k_fold), np.max(np.array(t_psnr)/args.k_fold), args.alpha[trial], np.max(np.array(cross_ssim)/args.k_fold)
         #torch.save(best_weights, os.path.join(args.outputs_dir, 'best.pth'))
 
 study= {"bpnn" :[], "psnr": [], "alpha": [],"ssim":[]}
