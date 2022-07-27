@@ -16,6 +16,7 @@ if __name__ == '__main__':
     parser.add_argument('--weights-file', type=str, required=True)
     parser.add_argument('--image-dir', type=str, required=True)
     parser.add_argument('--label-dir', type=str, required=True)
+    parser.add_argument('--mask-dir', type=str, required=True)
     parser.add_argument('--output-dir', type=str,required=True)
     parser.add_argument('--checkpoint_bpnn', type= str, default = "BPNN_checkpoint_75.pth")
     parser.add_argument('--nof', type= int, default = 85)
@@ -58,6 +59,8 @@ if __name__ == '__main__':
     for image_file in os.listdir(args.image_dir):
         image = pil_image.open(os.path.join(args.image_dir,image_file))
         image2 = pil_image.open(os.path.join(args.label_dir,image_file))
+        maskname = image_file.replace(".png",".bmp")
+        mask = pil_image.open(os.path.join(args.mask_dir,maskname))
         image_width = (image.width // args.scale) * args.scale
         image_height = (image.height // args.scale) * args.scale
 
