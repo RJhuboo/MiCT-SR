@@ -115,7 +115,7 @@ if __name__ == '__main__':
             for data in train_dataloader:
                 
                 # Forward
-                inputs, labels = data
+                inputs, labels, _ = data
                 inputs = inputs.reshape(inputs.size(0),1,256,256)
                 labels = labels.reshape(labels.size(0),1,512,512)
                 inputs, labels= inputs.float(), labels.float()
