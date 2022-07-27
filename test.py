@@ -9,7 +9,7 @@ from torch.nn import L1Loss, MSELoss
 
 from models import FSRCNN, BPNN
 from utils import convert_ycbcr_to_rgb, preprocess, calc_psnr
-
+from ssim import ssim
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
