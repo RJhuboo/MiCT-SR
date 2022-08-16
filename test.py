@@ -18,12 +18,12 @@ if __name__ == '__main__':
     parser.add_argument('--label-dir', type=str, required=True)
     parser.add_argument('--mask-dir', type=str, required=True)
     parser.add_argument('--output-dir', type=str,required=True)
-    parser.add_argument('--checkpoint_bpnn', type= str, default = "BPNN_checkpoint_75.pth")
-    parser.add_argument('--nof', type= int, default = 85)
-    parser.add_argument('--n1', type=int,default = 158)
-    parser.add_argument('--n2', type=int,default = 211)
-    parser.add_argument('--n3', type=int,default = 176)
-    parser.add_argument('--NB_LABEL', type=int,default=6)
+    parser.add_argument('--checkpoint_bpnn', type= str, default = "./checkpoints_bpnn/BPNN_checkpoint_12p.pth")
+    parser.add_argument('--nof', type= int, default = 23)
+    parser.add_argument('--n1', type=int,default = 169)
+    parser.add_argument('--n2', type=int,default = 155)
+    parser.add_argument('--n3', type=int,default = 154)
+    parser.add_argument('--NB_LABEL', type=int,default=12)
     parser.add_argument('--scale', type=int, default=2)
     args = parser.parse_args()
 
@@ -32,7 +32,7 @@ if __name__ == '__main__':
     cudnn.benchmark = True
     device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
     
-    model_bpnn = BPNN(args.nof, 6, n1= args.n1, n2=args.n2, n3=args.n3, k1=3,k2=3,k3=3).to(device)
+    model_bpnn = BPNN(args.nof, args.NB_LABEL, n1= args.n1, n2=args.n2, n3=args.n3, k1=3,k2=3,k3=3).to(device)
     model_bpnn.load_state_dict(torch.load(os.path.join(args.checkpoint_bpnn)))
     model_bpnn.to(device)
     
@@ -52,7 +52,7 @@ if __name__ == '__main__':
     model.eval()
 
     psnr = []
-    ssim = []
+    ssim_list = []
     mse = []
 ## --- TESTING LOOP --- ##
 
@@ -75,13 +75,15 @@ if __name__ == '__main__':
         with torch.no_grad():
             preds = model(lr).clamp(0.0, 1.0)
         
-        P_SR = model_bpnn(preds)
-        P_HR = model_bpnn(hr)
-        Loss = MSELoss()
-        mse.append(Loss(P_SR,P_HR).item())
+            P_SR = model_bpnn(preds)
+            P_HR = model_bpnn(hr)
+            Loss = MSELoss()
+            mse.append(Loss(P_SR,P_HR).item())
         
-        psnr.append(calc_psnr(hr, preds, args.mask_dir, image_file))
-        ssim.append(ssim(hr, preds, args.mask_dir, image_file))
+        print(hr.size())
+        print(preds.size())
+        psnr.append(calc_psnr(hr, preds, args.mask_dir, image_file,device))
+        ssim_list.append(ssim(x=hr, y=preds, data_range=1., downsample = False, directory=args.mask_dir, maskname=image_file,device=device))
         #psnr2.append(calc_psnr(hr,savelr))
 
         preds = preds.mul(255.0).cpu().numpy().squeeze(0).squeeze(0)
@@ -96,5 +98,5 @@ if __name__ == '__main__':
     print('PSNR COMPUTATION ...')
     print('Average PSNR SR :', sum(psnr)/len(psnr))
     print('Average MSE :', sum(mse)/len(mse))
-    print('Average SSIM SR :', sum(ssim)/len(ssim))
+    print('Average SSIM SR :', sum(ssim_list)/len(ssim_list))
     #print('Average PSNR LR : ', sum(psnr2)/len(psnr2))
