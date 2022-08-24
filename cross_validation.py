@@ -31,26 +31,26 @@ def objective(trial):
     parser.add_argument('--LR_dir', type=str,default = "./data/LR_trab/train")
     parser.add_argument('--mask_dir', type=str,default = "./data/mask_trab/train")
     parser.add_argument('--outputs-dir', type=str, default = "./FSRCNN_search")
-    parser.add_argument('--checkpoint_bpnn', type= str, default = "./checkpoints_bpnn/BPNN_checkpoint_12p.pth")
-    parser.add_argument('--alpha', default = [0,10**(-3),10**(-4),2.5*10**(-4),10**(-1),5*10**(-4),5*10**(-3),4*10**(-2),1,5*10**(-5)])
+    parser.add_argument('--checkpoint_bpnn', type= str, default = "./checkpoints_bpnn/BPNN_checkpoint_11p.pth")
+    parser.add_argument('--alpha', default = [5*10**(-3),10**(-4)]) #[0,10**(-3),10**(-4),5*10**(-4),5*10**(-3),4*10**(-2),5*10**(-5)])
     parser.add_argument('--Loss_bpnn', default = L1Loss)
     parser.add_argument('--weights-file', type=str)
     parser.add_argument('--scale', type=int, default=2)
     parser.add_argument('--lr', type=float, default=1e-3)
     parser.add_argument('--batch-size', type=int, default=16)
-    parser.add_argument('--num-epochs', type=int, default=200)
+    parser.add_argument('--num-epochs', type=int, default=150)
     parser.add_argument('--num-workers', type=int, default=6)
     parser.add_argument('--seed', type=int, default=123)
-    parser.add_argument('--nof', type= int, default = 23)
-    parser.add_argument('--n1', type=int,default = 169)
-    parser.add_argument('--n2', type=int,default = 155)
-    parser.add_argument('--n3', type=int,default = 154)
+    parser.add_argument('--nof', type= int, default = 13)
+    parser.add_argument('--n1', type=int,default = 124)
+    parser.add_argument('--n2', type=int,default = 125)
+    parser.add_argument('--n3', type=int,default = 147)
     parser.add_argument('--gpu_ids', type=list, default = [0, 1, 3])
-    parser.add_argument('--NB_LABEL', type=int, default = 12)
-    parser.add_argument('--k_fold', type=int, default = 1)
+    parser.add_argument('--NB_LABEL', type=int, default = 11)
+    parser.add_argument('--k_fold', type=int, default = 3)
     args = parser.parse_args()
 
-    args.outputs_dir = os.path.join(args.outputs_dir, 'BPNN_12p_x{}'.format(args.scale))
+    args.outputs_dir = os.path.join(args.outputs_dir, 'BPNN_11p_morefold_x{}'.format(args.scale))
     
     if os.path.exists(args.outputs_dir) == False:
         os.makedirs(args.outputs_dir)
@@ -80,9 +80,9 @@ def objective(trial):
     else:
         kf = train_test_split(index,test_size=0.2,random_state=42)
     cross_bpnn, cross_score, cross_psnr = [], [], []
-    for k in range(args.k_fold):
-        train_index = kf[0]
-        test_index = kf[1]
+    for train_index, test_index in kf.split(index):
+        #train_index = kf[0]
+        #test_index = kf[1]
         torch.manual_seed(args.seed)
         model = FSRCNN(scale_factor=args.scale)
         optimizer = optim.Adam([
@@ -206,12 +206,12 @@ def objective(trial):
         #torch.save(best_weights, os.path.join(args.outputs_dir, 'best.pth'))
 
 study= {"bpnn" :[], "psnr": [], "alpha": [],"ssim":[]}
-for n_trial in range(10):
+for n_trial in range(2):
     bp,ps,al,ss = objective(n_trial)
     study["bpnn"].append(bp)
     study["psnr"].append(ps)
     study["alpha"].append(al)
     study["ssim"].append(ss)
 
-with open("./FSRCNN_12p.pkl","wb") as f:
+with open("./FSRCNN_11p_morefold.pkl","wb") as f:
     pickle.dump(study,f)
