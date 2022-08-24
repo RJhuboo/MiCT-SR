@@ -71,7 +71,6 @@ def eval(args):
     hr_group = h5_file.create_group('hr')
 
     for i, image_path in enumerate(os.listdir(args.images_dir)):
-        print("avancement", i)
         hr = pil_image.open(os.path.join(args.label_dir,image_path))
         lr = pil_image.open(os.path.join(args.images_dir,image_path))
 
@@ -98,9 +97,6 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     if not args.eval:
-        print("debut train")
         train(args)
-        print("C'est fini")
     else:
-        print("debut eval")
         eval(args)
