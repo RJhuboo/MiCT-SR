@@ -62,7 +62,6 @@ def preprocess(img, device):
 
         
 def calc_psnr(img1,img2,directory,name,device):
-    print(name)
     if isinstance(name,list) or isinstance(name,tuple):
         name = name[0].replace("png","bmp")
     else:
