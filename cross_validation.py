@@ -32,13 +32,13 @@ def objective(trial):
     parser.add_argument('--mask_dir', type=str,default = "./data/mask_trab/train")
     parser.add_argument('--outputs-dir', type=str, default = "./FSRCNN_search")
     parser.add_argument('--checkpoint_bpnn', type= str, default = "./checkpoints_bpnn/BPNN_checkpoint_11p.pth")
-    parser.add_argument('--alpha', default = [5*10**(-3),10**(-4)]) #[0,10**(-3),10**(-4),5*10**(-4),5*10**(-3),4*10**(-2),5*10**(-5)])
-    parser.add_argument('--Loss_bpnn', default = L1Loss)
+    parser.add_argument('--alpha', default = [0,10**(-3),10**(-4),5*10**(-4),5*10**(-3),4*10**(-2),5*10**(-5)])
+    parser.add_argument('--Loss_bpnn', default = MSELoss)
     parser.add_argument('--weights-file', type=str)
     parser.add_argument('--scale', type=int, default=2)
     parser.add_argument('--lr', type=float, default=1e-3)
     parser.add_argument('--batch-size', type=int, default=16)
-    parser.add_argument('--num-epochs', type=int, default=4)
+    parser.add_argument('--num-epochs', type=int, default=100)
     parser.add_argument('--num-workers', type=int, default=6)
     parser.add_argument('--seed', type=int, default=123)
     parser.add_argument('--nof', type= int, default = 13)
@@ -47,10 +47,10 @@ def objective(trial):
     parser.add_argument('--n3', type=int,default = 147)
     parser.add_argument('--gpu_ids', type=list, default = [0, 1, 3])
     parser.add_argument('--NB_LABEL', type=int, default = 11)
-    parser.add_argument('--k_fold', type=int, default = 3)
+    parser.add_argument('--k_fold', type=int, default = 1)
     args = parser.parse_args()
 
-    args.outputs_dir = os.path.join(args.outputs_dir, 'BPNN_11p_morefold_x{}'.format(args.scale))
+    args.outputs_dir = os.path.join(args.outputs_dir, 'BPNN_11p_x{}'.format(args.scale))
     
     if os.path.exists(args.outputs_dir) == False:
         os.makedirs(args.outputs_dir)
@@ -80,9 +80,10 @@ def objective(trial):
     else:
         kf = train_test_split(index,test_size=0.2,random_state=42)
     cross_bpnn, cross_score, cross_psnr = [], [], []
-    for train_index, test_index in kf.split(index):
-        #train_index = kf[0]
-        #test_index = kf[1]
+    for k in range(1):
+    # for train_index, test_index in kf.split(index):
+        train_index = kf[0]
+        test_index = kf[1]
         torch.manual_seed(args.seed)
         model = FSRCNN(scale_factor=args.scale)
         optimizer = optim.Adam([
@@ -95,7 +96,6 @@ def objective(trial):
         model.to(device)
         criterion = nn.MSELoss()
         Lbpnn =  args.Loss_bpnn()
-
         
         dataset = TrainDataset(args.HR_dir, args.LR_dir)
         train_dataloader = DataLoader(dataset=dataset,
@@ -135,9 +135,8 @@ def objective(trial):
                     L_SR = criterion(preds, labels)
                     L_BPNN = Lbpnn(P_SR,P_HR)
                     loss = L_SR + (args.alpha[trial] * L_BPNN)
-
-                    epoch_losses.update(loss.item(), len(inputs))
-                    bpnn_loss.update(L_BPNN.item(), len(inputs))
+                    epoch_losses.update(loss.item(),len(inputs))
+                    bpnn_loss.update(L_BPNN.item(),len(inputs))
                     optimizer.zero_grad()
                     #loss.backward()
                     loss.mean().backward()
@@ -145,6 +144,7 @@ def objective(trial):
 
                     t.set_postfix(loss='{:.6f}'.format(epoch_losses.avg))
                     t.update(len(inputs))
+            print(L_BPNN.item())
             print("##### Train #####")
             print("BPNN loss: {:.6f}".format(bpnn_loss.avg))
             print("train loss : {:.6f}".format(epoch_losses.avg))
@@ -165,9 +165,10 @@ def objective(trial):
                 inputs, labels = inputs.float(), labels.float()
                 inputs = inputs.to(device)
                 labels = labels.to(device)
-
                 with torch.no_grad():
                     preds = model(inputs).clamp(0.0, 1.0)
+                    P_SR = model_bpnn(preds)
+                    P_HR = model_bpnn(labels)
                     Ltest_SR = criterion(preds, labels)
                     Ltest_BPNN = Lbpnn(P_SR,P_HR)
                     loss_test = Ltest_SR + (args.alpha[trial] * Ltest_BPNN)
@@ -213,5 +214,5 @@ for n_trial in range(2):
     study["alpha"].append(al)
     study["ssim"].append(ss)
 
-with open("./FSRCNN_11p_morefold.pkl","wb") as f:
+with open("./FSRCNN_11p.pkl","wb") as f:
     pickle.dump(study,f)
