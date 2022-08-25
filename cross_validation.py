@@ -78,12 +78,14 @@ def objective(trial):
     if args.k_fold >1:
         kf = KFold(n_splits = args.k_fold, shuffle=True)
     else:
-        kf = train_test_split(index,test_size=0.2,random_state=42)
+        kf = train_test_split(index,test_size=0.2)
     cross_bpnn, cross_score, cross_psnr = [], [], []
     for k in range(1):
     # for train_index, test_index in kf.split(index):
         train_index = kf[0]
         test_index = kf[1]
+        print(len(train_index))
+        print(len(test_index))
         torch.manual_seed(args.seed)
         model = FSRCNN(scale_factor=args.scale)
         optimizer = optim.Adam([
@@ -102,11 +104,12 @@ def objective(trial):
                                       batch_size=args.batch_size,
                                       sampler=train_index,
                                       num_workers=args.num_workers)
+        print(len(train_dataloader))
         eval_dataloader = DataLoader(dataset=dataset, 
                                      sampler=test_index,
                                      batch_size=1,
                                      num_workers=args.num_workers)    
-
+        print(len(eval_dataloader))
         best_weights = copy.deepcopy(model.state_dict())
         best_epoch = 0
         best_loss = 10
