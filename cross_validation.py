@@ -31,8 +31,8 @@ def objective(trial):
     parser.add_argument('--LR_dir', type=str,default = "./data/LR_trab/train")
     parser.add_argument('--mask_dir', type=str,default = "./data/mask_trab/train")
     parser.add_argument('--outputs-dir', type=str, default = "./FSRCNN_search")
-    parser.add_argument('--checkpoint_bpnn', type= str, default = "./checkpoints_bpnn/BPNN_checkpoint_11p.pth")
-    parser.add_argument('--alpha', default = [0,10**(-3),10**(-4),5*10**(-4),5*10**(-3),4*10**(-2),5*10**(-5)])
+    parser.add_argument('--checkpoint_bpnn', type= str, default = "./checkpoints_bpnn/BPNN_checkpoint_6p.pth")
+    parser.add_argument('--alpha', default = [0,10**(-3),10**(-1),10**(-4),5*10**(-4),5*10**(-3),4*10**(-2),5*10**(-5)])
     parser.add_argument('--Loss_bpnn', default = MSELoss)
     parser.add_argument('--weights-file', type=str)
     parser.add_argument('--scale', type=int, default=2)
@@ -41,16 +41,16 @@ def objective(trial):
     parser.add_argument('--num-epochs', type=int, default=100)
     parser.add_argument('--num-workers', type=int, default=6)
     parser.add_argument('--seed', type=int, default=123)
-    parser.add_argument('--nof', type= int, default = 13)
-    parser.add_argument('--n1', type=int,default = 124)
-    parser.add_argument('--n2', type=int,default = 125)
-    parser.add_argument('--n3', type=int,default = 147)
+    parser.add_argument('--nof', type= int, default = 40)
+    parser.add_argument('--n1', type=int,default = 127)
+    parser.add_argument('--n2', type=int,default = 157)
+    parser.add_argument('--n3', type=int,default = 153)
     parser.add_argument('--gpu_ids', type=list, default = [0, 1, 3])
-    parser.add_argument('--NB_LABEL', type=int, default = 11)
+    parser.add_argument('--NB_LABEL', type=int, default = 6)
     parser.add_argument('--k_fold', type=int, default = 1)
     args = parser.parse_args()
 
-    args.outputs_dir = os.path.join(args.outputs_dir, 'BPNN_11p_x{}'.format(args.scale))
+    args.outputs_dir = os.path.join(args.outputs_dir, 'BPNN_6p_x{}'.format(args.scale))
     
     if os.path.exists(args.outputs_dir) == False:
         os.makedirs(args.outputs_dir)
@@ -207,12 +207,12 @@ def objective(trial):
         #torch.save(best_weights, os.path.join(args.outputs_dir, 'best.pth'))
 
 study= {"bpnn" :[], "psnr": [], "alpha": [],"ssim":[]}
-for n_trial in range(2):
+for n_trial in range(8):
     bp,ps,al,ss = objective(n_trial)
     study["bpnn"].append(bp)
     study["psnr"].append(ps)
     study["alpha"].append(al)
     study["ssim"].append(ss)
 
-with open("./FSRCNN_11p.pkl","wb") as f:
+with open("./FSRCNN_6p.pkl","wb") as f:
     pickle.dump(study,f)
