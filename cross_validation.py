@@ -114,7 +114,8 @@ def objective(trial):
         best_weights = copy.deepcopy(model.state_dict())
         best_epoch = 0
         best_loss = 10
-        t_score, tr_score, tr_bpnn, t_bpnn, t_psnr,t_ssim,tr_psnr,tr_ssim = [], [] ,[], [], [], [], [], []
+        t_score, tr_score, tr_bpnn, t_bpnn, t_psnr,t_ssim = [], [] ,[], [], [], []
+        tr_psnr,tr_ssim = [], []
         start = time.time()
 
         for epoch in range(args.num_epochs):
