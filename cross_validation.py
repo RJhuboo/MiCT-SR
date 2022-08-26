@@ -78,7 +78,7 @@ def objective(trial):
     if args.k_fold >1:
         kf = KFold(n_splits = args.k_fold, shuffle=True)
     else:
-        kf = train_test_split(index,test_size=0.2)
+        kf = train_test_split(index,test_size=0.2,random_state=42)
     cross_bpnn, cross_score, cross_psnr = [], [], []
     cross_bpnn, cross_score, cross_psnr, cross_ssim = np.zeros(args.num_epochs),np.zeros(args.num_epochs),np.zeros(args.num_epochs),np.zeros(args.num_epochs)
     for k in range(1):
