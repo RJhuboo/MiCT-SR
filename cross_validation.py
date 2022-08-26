@@ -129,7 +129,7 @@ def objective(trial):
                 t.set_description('epoch: {}/{}'.format(epoch, args.num_epochs - 1))
 
                 for data in train_dataloader:
-                    inputs, labels, _ = data
+                    inputs, labels, imagename = data
                     inputs = inputs.reshape(inputs.size(0),1,256,256)
                     labels = labels.reshape(labels.size(0),1,512,512)
                     inputs, labels= inputs.float(), labels.float()
