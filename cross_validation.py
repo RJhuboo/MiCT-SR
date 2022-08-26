@@ -80,6 +80,7 @@ def objective(trial):
     else:
         kf = train_test_split(index,test_size=0.2)
     cross_bpnn, cross_score, cross_psnr = [], [], []
+    cross_bpnn, cross_score, cross_psnr, cross_ssim = np.zeros(args.num_epochs),np.zeros(args.num_epochs),np.zeros(args.num_epochs),np.zeros(args.num_epochs)
     for k in range(1):
     # for train_index, test_index in kf.split(index):
         train_index = kf[0]
@@ -113,15 +114,15 @@ def objective(trial):
         best_weights = copy.deepcopy(model.state_dict())
         best_epoch = 0
         best_loss = 10
-        t_score, tr_score, tr_bpnn, t_bpnn, t_psnr,t_ssim = [], [] ,[], [], [], []
+        t_score, tr_score, tr_bpnn, t_bpnn, t_psnr,t_ssim,tr_psnr,tr_ssim = [], [] ,[], [], [], [], [], []
         start = time.time()
-        cross_bpnn, cross_score, cross_psnr, cross_ssim = np.zeros(args.num_epochs),np.zeros(args.num_epochs),np.zeros(args.num_epochs),np.zeros(args.num_epochs)
-        
+
         for epoch in range(args.num_epochs):
             model.train()
             epoch_losses = AverageMeter()
             bpnn_loss = AverageMeter()
-
+            psnr_train = []
+            ssim_train = []
             with tqdm(total=(len(train_dataloader) - len(train_dataloader) % args.batch_size), ncols=80) as t:
                 t.set_description('epoch: {}/{}'.format(epoch, args.num_epochs - 1))
 
@@ -147,7 +148,10 @@ def objective(trial):
 
                     t.set_postfix(loss='{:.6f}'.format(epoch_losses.avg))
                     t.update(len(inputs))
-            print(L_BPNN.item())
+                    psnr_train.append(calc_psnr(labels,preds,args.mask_dir,imagename,device).item())
+                    ssim_train.append(ssim(x=labels,y=preds,data_range=1.,downsample=False,directory = args.mask_dir,maskname = imagename))
+            tr_psnr.append(sum(psnr_train)/len(psnr_train))
+            tr_ssim.append(sum(ssim_train)/len(ssim_train))
             print("##### Train #####")
             print("BPNN loss: {:.6f}".format(bpnn_loss.avg))
             print("train loss : {:.6f}".format(epoch_losses.avg))
@@ -169,7 +173,7 @@ def objective(trial):
                 inputs = inputs.to(device)
                 labels = labels.to(device)
                 with torch.no_grad():
-                    preds = model(inputs).clamp(0.0, 1.0)
+                    preds = model(inputs) #.clamp(0.0,1.0)
                     P_SR = model_bpnn(preds)
                     P_HR = model_bpnn(labels)
                     Ltest_SR = criterion(preds, labels)
@@ -199,7 +203,7 @@ def objective(trial):
         cross_psnr = cross_psnr + np.array(t_psnr)
         cross_ssim = cross_ssim + np.array(t_ssim)
 
-    training_info = {"loss_train": tr_score, "loss_val": cross_score/args.k_fold, "bpnn_train" :tr_bpnn, "bpnn_val": cross_bpnn/args.k_fold, "psnr": cross_psnr/args.k_fold, "ssim":cross_ssim/args.k_fold}
+    training_info = {"loss_train": tr_score, "loss_val": cross_score/args.k_fold, "bpnn_train" :tr_bpnn, "bpnn_val": cross_bpnn/args.k_fold, "psnr": cross_psnr/args.k_fold, "ssim":cross_ssim/args.k_fold, "train_ssim": tr_ssim, "train_psnr": tr_psnr}
     i=1
     while os.path.exists(os.path.join(args.outputs_dir,"losses_info"+str(i)+".pkl")) == True:
         i=i+1
