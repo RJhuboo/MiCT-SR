@@ -134,7 +134,7 @@ def objective(trial):
                     labels = labels.reshape(labels.size(0),1,512,512)
                     inputs, labels= inputs.float(), labels.float()
                     inputs, labels = inputs.to(device), labels.to(device)
-                    preds = model(inputs)
+                    preds = model(inputs).clamp(0.0, 1.0)
                     P_SR = model_bpnn(preds)
                     P_HR = model_bpnn(labels)
 
