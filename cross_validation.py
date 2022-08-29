@@ -134,7 +134,7 @@ def objective(trial):
                     labels = labels.reshape(labels.size(0),1,512,512)
                     inputs, labels= inputs.float(), labels.float()
                     inputs, labels = inputs.to(device), labels.to(device)
-                    preds = model(inputs).clamp(0.0, 1.0)
+                    preds = model(inputs)
                     P_SR = model_bpnn(preds)
                     P_HR = model_bpnn(labels)
 
@@ -150,6 +150,7 @@ def objective(trial):
 
                     t.set_postfix(loss='{:.6f}'.format(epoch_losses.avg))
                     t.update(len(inputs))
+                    preds = model(inputs).clamp(0.0, 1.0)
                     psnr_train.append(calc_psnr(labels,preds,args.mask_dir,imagename,device).item())
                     ssim_train.append(ssim(x=labels,y=preds,data_range=1.,downsample=False,directory = args.mask_dir,maskname = imagename))
             tr_psnr.append(sum(psnr_train)/len(psnr_train))
