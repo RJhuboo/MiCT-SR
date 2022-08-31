@@ -69,7 +69,7 @@ def calc_psnr(img1,img2,directory,name,device):
     mask = io.imread(os.path.join(directory,name))
     mask = mask / mask.max()
     mask = torch.reshape(torch.tensor(mask),(1,1,512,512)).to(device)
-    MSE = torch.sum((torch.mul((img1.cpu() - img2.cpu()),mask))**2) / torch.sum(mask)
+    MSE = torch.sum((torch.mul((img1 - img2),mask))**2) / torch.sum(mask)
     return 10. * torch.log10(1. / MSE)
 
 #def calc_ssim(img1,img2, directory, name):
