@@ -150,9 +150,9 @@ def objective(trial):
 
                     t.set_postfix(loss='{:.6f}'.format(epoch_losses.avg))
                     t.update(len(inputs))
-                    preds = model(inputs).clamp(0.0, 1.0)
-                    psnr_train.append(calc_psnr(labels,preds,args.mask_dir,imagename,device).item())
-                    ssim_train.append(ssim(x=labels,y=preds,data_range=1.,downsample=False,directory = args.mask_dir,maskname = imagename))
+                    preds = model(inputs).clamp(0.0, 1.0).cpu()
+                    psnr_train.append(calc_psnr(labels,preds,args.mask_dir,imagename,device="cpu").item())
+                    ssim_train.append(ssim(x=labels.cpu(),y=preds.cpu(),data_range=1.,downsample=False,directory = args.mask_dir,maskname = imagename,device="cpu"))
             tr_psnr.append(sum(psnr_train)/len(psnr_train))
             tr_ssim.append(sum(ssim_train)/len(ssim_train))
             print("##### Train #####")
