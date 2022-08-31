@@ -114,8 +114,8 @@ def objective(trial):
         best_weights = copy.deepcopy(model.state_dict())
         best_epoch = 0
         best_loss = 10
-        tr_psnr = []
-        tr_ssim = []
+        #tr_psnr = []
+        #tr_ssim = []
         t_score, tr_score, tr_bpnn, t_bpnn, t_psnr,t_ssim = [], [] ,[], [], [], []
         start = time.time()
 
@@ -150,11 +150,11 @@ def objective(trial):
 
                     t.set_postfix(loss='{:.6f}'.format(epoch_losses.avg))
                     t.update(len(inputs))
-                    preds = model(inputs).clamp(0.0, 1.0).cpu()
-                    psnr_train.append(calc_psnr(labels,preds,args.mask_dir,imagename,device="cpu").item())
-                    ssim_train.append(ssim(x=labels.cpu(),y=preds.cpu(),data_range=1.,downsample=False,directory = args.mask_dir,maskname = imagename,device="cpu"))
-            tr_psnr.append(sum(psnr_train)/len(psnr_train))
-            tr_ssim.append(sum(ssim_train)/len(ssim_train))
+                    #preds = model(inputs).clamp(0.0, 1.0)
+                    #psnr_train.append(calc_psnr(labels,preds,args.mask_dir,imagename,device=device).item())
+                    #ssim_train.append(ssim(x=labels,y=preds,data_range=1.,downsample=False,directory = args.mask_dir,maskname = imagename,device=device))
+            #tr_psnr.append(sum(psnr_train)/len(psnr_train))
+            #tr_ssim.append(sum(ssim_train)/len(ssim_train))
             print("##### Train #####")
             print("BPNN loss: {:.6f}".format(bpnn_loss.avg))
             print("train loss : {:.6f}".format(epoch_losses.avg))
