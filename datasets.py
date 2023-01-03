@@ -14,8 +14,10 @@ class TrainDataset(Dataset):
     def __getitem__(self, idx):
         all_images = os.listdir(self.HR_dir)
         HR_path, LR_path = os.path.join(self.HR_dir,all_images[idx]), os.path.join(self.LR_dir,all_images[idx])
+        mask_path = os.path.join(self.mask_dir, all_images[idx].replace(".png",".bmp"))
         HR = io.imread(HR_path) / 255
         LR = io.imread(LR_path) / 255
+        mask = io.imread(mask_path) / 255
         return LR, HR, mask, all_images[idx]
         
     def __len__(self):
