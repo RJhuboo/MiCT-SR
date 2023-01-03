@@ -29,6 +29,7 @@ def objective(trial):
     parser = argparse.ArgumentParser()
     parser.add_argument('--HR_dir', type=str,default = "./data/ROI_trab/train")
     parser.add_argument('--LR_dir', type=str,default = "./data/LR_trab/train")
+    parser.add_argument('--mask_dir',type=str,default = "./")
     parser.add_argument('--mask_dir', type=str,default = "./data/mask_trab/train")
     parser.add_argument('--outputs-dir', type=str, default = "./FSRCNN_search")
     parser.add_argument('--checkpoint_bpnn', type= str, default = "./checkpoints_bpnn/BPNN_checkpoint_6p.pth")
@@ -100,7 +101,7 @@ def objective(trial):
         criterion = nn.MSELoss()
         Lbpnn =  args.Loss_bpnn()
         
-        dataset = TrainDataset(args.HR_dir, args.LR_dir)
+        dataset = TrainDataset(args.HR_dir, args.LR_dir, args.mask_dir)
         train_dataloader = DataLoader(dataset=dataset,
                                       batch_size=args.batch_size,
                                       sampler=train_index,
