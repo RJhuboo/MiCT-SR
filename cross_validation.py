@@ -22,7 +22,7 @@ from utils import AverageMeter, calc_psnr
 from ssim import ssim
 import time
 
-NB_DATA = 4474
+NB_DATA = 2800+4700
 
 
 def objective(trial):
