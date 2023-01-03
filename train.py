@@ -18,7 +18,7 @@ from models import FSRCNN, BPNN
 from datasets import TrainDataset
 from utils import AverageMeter, calc_psnr
 
-NB_DATA = 4474
+NB_DATA = 2800+4700
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -39,7 +39,7 @@ if __name__ == '__main__':
     parser.add_argument('--n1', type=int,default = 124)
     parser.add_argument('--n2', type=int,default = 125)
     parser.add_argument('--n3', type=int,default = 147)
-    parser.add_argument('--gpu_ids', type=list, default = [0])
+    parser.add_argument('--gpu_ids', type=list, default = [0,1,2])
     parser.add_argument('--NB_LABEL', type=int, default = 11)
     args = parser.parse_args()
 
