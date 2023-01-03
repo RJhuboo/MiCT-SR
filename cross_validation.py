@@ -130,18 +130,21 @@ def objective(trial):
                 t.set_description('epoch: {}/{}'.format(epoch, args.num_epochs - 1))
 
                 for data in train_dataloader:
-                    inputs, labels, imagename = data
+                    inputs, labels, masks, imagename = data
                     inputs = inputs.reshape(inputs.size(0),1,256,256)
                     labels = labels.reshape(labels.size(0),1,512,512)
-                    inputs, labels= inputs.float(), labels.float()
-                    inputs, labels = inputs.to(device), labels.to(device)
+                    masks = masks.reshape(masks.size(0),1,512,512)
+                    inputs, labels, masks = inputs.float(), labels.float(), masks.float()
+                    inputs, labels, masks = inputs.to(device), labels.to(device), masks.to(device)
+                    
                     preds = model(inputs)
-                    P_SR = model_bpnn(preds)
-                    P_HR = model_bpnn(labels)
-
+                    P_SR = model_bpnn(masks,preds)
+                    P_HR = model_bpnn(masks,labels)
+                    
                     L_SR = criterion(preds, labels)
                     L_BPNN = Lbpnn(P_SR,P_HR)
                     loss = L_SR + (args.alpha[trial] * L_BPNN)
+                    
                     epoch_losses.update(loss.item(),len(inputs))
                     bpnn_loss.update(L_BPNN.item(),len(inputs))
                     optimizer.zero_grad()
@@ -154,6 +157,7 @@ def objective(trial):
                     #preds = model(inputs).clamp(0.0, 1.0)
                     psnr_train.append(calc_psnr(labels.cpu(),preds.clamp(0.0,1.0).cpu(),args.mask_dir,imagename,device="cpu").item())
                     ssim_train.append(ssim(x=labels.cpu(),y=preds.clamp(0.0,1.0).cpu(),data_range=1.,downsample=False,directory = args.mask_dir,maskname = imagename,device="cpu"))
+            
             tr_psnr.append(sum(psnr_train)/len(psnr_train))
             tr_ssim.append(sum(ssim_train)/len(ssim_train))
             print("##### Train #####")
@@ -170,17 +174,19 @@ def objective(trial):
             epoch_losses_test = AverageMeter()
             bpnn_loss_test = AverageMeter()
             for data in eval_dataloader:
-                inputs, labels, imagename = data
+                inputs, labels, masks, imagename = data
                 inputs = inputs.reshape(inputs.size(0),1,256,256)
                 labels = labels.reshape(labels.size(0),1,512,512)
-                inputs, labels = inputs.float(), labels.float()
+                masks = masks.reshape(masks.size(0),1,512,512)
+                inputs, labels, masks = inputs.float(), labels.float(), masks.float()
                 inputs = inputs.to(device)
                 labels = labels.to(device)
+                masks = masks.to(device)
                 with torch.no_grad():
                     preds = model(inputs).clamp(0.0,1.0)
-                    P_SR = model_bpnn(preds)
-                    P_HR = model_bpnn(labels)
-                    Ltest_SR = criterion(preds, labels)
+                    P_SR = model_bpnn(masks,preds)
+                    P_HR = model_bpnn(masks,labels)
+                    Ltest_SR = criterion(preds, labels) 
                     Ltest_BPNN = Lbpnn(P_SR,P_HR)
                     loss_test = Ltest_SR + (args.alpha[trial] * Ltest_BPNN)
                     epoch_losses_test.update(loss_test.item())
