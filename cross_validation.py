@@ -240,5 +240,5 @@ for n_trial in range(8):
     study["alpha"].append(al)
     study["ssim"].append(ss)
 
-with open("./FSRCNN_6p.pkl","wb") as f:
+with open("./FSRCNN_9p.pkl","wb") as f:
     pickle.dump(study,f)
