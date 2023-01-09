@@ -40,7 +40,7 @@ def objective(trial):
     parser.add_argument('--lr', type=float, default=1e-3)
     parser.add_argument('--batch-size', type=int, default=8)
     parser.add_argument('--num-epochs', type=int, default=100)
-    parser.add_argument('--num-workers', type=int, default=6)
+    parser.add_argument('--num-workers', type=int, default=24)
     parser.add_argument('--seed', type=int, default=123)
     parser.add_argument('--nof', type= int, default = 36)
     parser.add_argument('--n1', type=int,default = 135)
@@ -64,7 +64,15 @@ def objective(trial):
     else:
         device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
     
-           
+    model_bpnn = BPNN(in_channel=1,features=args.nof, out_channels=args.NB_LABEL, n1= args.n1, n2=args.n2, n3=args.n3, k1=3,k2=3,k3=3).to(device)
+    model_bpnn.load_state_dict(torch.load(os.path.join(args.checkpoint_bpnn)))
+    if torch.cuda.device_count() > 1:
+        model_bpnn = nn.DataParallel(model_bpnn)
+    model_bpnn.to(device)
+    for param in model_bpnn.parameters():
+        param.requires_grad = False
+    model_bpnn.eval()
+                    
     #train_dataset = TrainDataset(args.HR_dir,args.LR_dir)
     index = range(NB_DATA)
     if args.k_fold >1:
@@ -139,19 +147,9 @@ def objective(trial):
                     inputs, labels, masks = inputs.to(device), labels.to(device), masks.to(device)
                     
                     preds = model(inputs)
-                    
-                    model_bpnn = BPNN(in_channel=1,features=args.nof, out_channels=args.NB_LABEL, n1= args.n1, n2=args.n2, n3=args.n3, k1=3,k2=3,k3=3).to(device)
-                    model_bpnn.load_state_dict(torch.load(os.path.join(args.checkpoint_bpnn)))
-                    if torch.cuda.device_count() > 1:
-                        model_bpnn = nn.DataParallel(model_bpnn)
-                    model_bpnn.to(device)
-                    for param in model_bpnn.parameters():
-                        param.requires_grad = False
-                    model_bpnn.eval()
-    
+                       
                     P_SR = model_bpnn(masks,preds)
                     P_HR = model_bpnn(masks,labels)
-                    del model_bpnn
                 
                     L_SR = criterion(preds, labels)
                     L_BPNN = Lbpnn(P_SR,P_HR)
@@ -198,17 +196,9 @@ def objective(trial):
                 masks = masks.to(device)
                 with torch.no_grad():
                     preds = model(inputs).clamp(0.0,1.0)
-                    model_bpnn = BPNN(in_channel=1,features=args.nof, out_channels=args.NB_LABEL, n1= args.n1, n2=args.n2, n3=args.n3, k1=3,k2=3,k3=3).to(device)
-                    model_bpnn.load_state_dict(torch.load(os.path.join(args.checkpoint_bpnn)))
-                    if torch.cuda.device_count() > 1:
-                        model_bpnn = nn.DataParallel(model_bpnn)
-                    model_bpnn.to(device)
-                    for param in model_bpnn.parameters():
-                        param.requires_grad = False
-                    model_bpnn.eval()
+                    
                     P_SR = model_bpnn(masks,preds)
                     P_HR = model_bpnn(masks,labels)
-                    del model_bpnn
                     Ltest_SR = criterion(preds, labels) 
                     Ltest_BPNN = Lbpnn(P_SR,P_HR)
                     loss_test = Ltest_SR + (args.alpha[trial] * Ltest_BPNN)
