@@ -20,6 +20,9 @@ class TrainDataset(Dataset):
         HR = io.imread(HR_path) / 255
         LR = io.imread(LR_path) / 255
         mask = io.imread(mask_path) / 255
+        HR = HR.astype('float32')
+        LR = LR.astype('float32')
+        mask = mask.astype('float32')
         if self.transform:
             HR = self.transform(HR)
             LR = self.transform(LR)
