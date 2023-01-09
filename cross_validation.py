@@ -194,8 +194,8 @@ def objective(trial):
                 masks = masks.to(device)
                 with torch.no_grad():
                     preds = model(inputs).clamp(0.0,1.0)
-                    P_SR = model_bpnn(masks,preds)
-                    P_HR = model_bpnn(masks,labels)
+                    P_SR = model_bpnn(masks.to('cpu'),preds.to('cpu'))
+                    P_HR = model_bpnn(masks.to('cpu'),labels.to('cpu'))
                     Ltest_SR = criterion(preds, labels) 
                     Ltest_BPNN = Lbpnn(P_SR,P_HR)
                     loss_test = Ltest_SR + (args.alpha[trial] * Ltest_BPNN)
