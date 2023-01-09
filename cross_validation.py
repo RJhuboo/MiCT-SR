@@ -63,7 +63,7 @@ def objective(trial):
     else:
         device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
     
-    model_bpnn = BPNN(args.nof, args.NB_LABEL, n1= args.n1, n2=args.n2, n3=args.n3, k1=3,k2=3,k3=3).to(device)
+    model_bpnn = BPNN(in_channels=1,features=args.nof, out_channels=args.NB_LABEL, n1= args.n1, n2=args.n2, n3=args.n3, k1=3,k2=3,k3=3).to(device)
     model_bpnn.load_state_dict(torch.load(os.path.join(args.checkpoint_bpnn)))
     if torch.cuda.device_count() > 1:
         model_bpnn = nn.DataParallel(model_bpnn)
