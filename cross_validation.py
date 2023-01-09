@@ -22,17 +22,16 @@ from utils import AverageMeter, calc_psnr
 from ssim import ssim
 import time
 
-NB_DATA = 2800+4700
+NB_DATA = 7100
 
 
 def objective(trial):
     parser = argparse.ArgumentParser()
-    parser.add_argument('--HR_dir', type=str,default = "./data/ROI_trab/train")
-    parser.add_argument('--LR_dir', type=str,default = "./data/LR_trab/train")
-    parser.add_argument('--mask_dir',type=str,default = "./")
-    parser.add_argument('--mask_dir', type=str,default = "./data/mask_trab/train")
+    parser.add_argument('--HR_dir', type=str,default = "./data/HR/Train_Label_trab_100")
+    parser.add_argument('--LR_dir', type=str,default = "./data/LR/Train_trab")
+    parser.add_argument('--mask_dir',type=str,default = "./data/HR/Train_trab_mask")
     parser.add_argument('--outputs-dir', type=str, default = "./FSRCNN_search")
-    parser.add_argument('--checkpoint_bpnn', type= str, default = "./checkpoints_bpnn/BPNN_checkpoint_6p.pth")
+    parser.add_argument('--checkpoint_bpnn', type= str, default = "./checkpoints_bpnn/BPNN_checkpoint_149.pth")
     parser.add_argument('--alpha', default = [0,10**(-3),10**(-1),10**(-4),5*10**(-4),5*10**(-3),4*10**(-2),5*10**(-5)])
     parser.add_argument('--Loss_bpnn', default = MSELoss)
     parser.add_argument('--weights-file', type=str)
@@ -47,11 +46,11 @@ def objective(trial):
     parser.add_argument('--n2', type=int,default = 157)
     parser.add_argument('--n3', type=int,default = 153)
     parser.add_argument('--gpu_ids', type=list, default = [0, 1, 3])
-    parser.add_argument('--NB_LABEL', type=int, default = 6)
+    parser.add_argument('--NB_LABEL', type=int, default = 9)
     parser.add_argument('--k_fold', type=int, default = 1)
     args = parser.parse_args()
 
-    args.outputs_dir = os.path.join(args.outputs_dir, 'BPNN_6p_x{}'.format(args.scale))
+    args.outputs_dir = os.path.join(args.outputs_dir, 'BPNN_9p_x{}'.format(args.scale))
     
     if os.path.exists(args.outputs_dir) == False:
         os.makedirs(args.outputs_dir)
@@ -79,15 +78,16 @@ def objective(trial):
     if args.k_fold >1:
         kf = KFold(n_splits = args.k_fold, shuffle=True)
     else:
-        kf = train_test_split(index,test_size=0.2,random_state=42)
+        kf = train_test_split(index,train_size=6000,test_size=1100,random_state=42)
     cross_bpnn, cross_score, cross_psnr = [], [], []
     cross_bpnn, cross_score, cross_psnr, cross_ssim = np.zeros(args.num_epochs),np.zeros(args.num_epochs),np.zeros(args.num_epochs),np.zeros(args.num_epochs)
     for k in range(1):
     # for train_index, test_index in kf.split(index):
         train_index = kf[0]
         test_index = kf[1]
-        print(len(train_index))
-        print(len(test_index))
+        print("-------  Data separation -------")
+        print("train size:",len(train_index))
+        print("test size:",len(test_index))
         torch.manual_seed(args.seed)
         model = FSRCNN(scale_factor=args.scale)
         optimizer = optim.Adam([
@@ -101,7 +101,16 @@ def objective(trial):
         criterion = nn.MSELoss()
         Lbpnn =  args.Loss_bpnn()
         
-        dataset = TrainDataset(args.HR_dir, args.LR_dir, args.mask_dir)
+        my_transforms = transforms.Compose([
+          transforms.ToPILImage(),
+          transforms.RandomRotation(degrees=45),
+          transforms.RandomHorizontalFlip(p=0.3),
+          transforms.RandomVerticalFlip(p=0.3),
+          transforms.RandomAffine(degrees=(0,1),translate=(0.1,0.1)),
+          transforms.ToTensor(),
+        ])
+        
+        dataset = TrainDataset(args.HR_dir, args.LR_dir, args.mask_dir,transform = my_transforms)
         train_dataloader = DataLoader(dataset=dataset,
                                       batch_size=args.batch_size,
                                       sampler=train_index,
