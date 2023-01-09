@@ -61,7 +61,7 @@ class NeuralNet(nn.Module):
 ## 3 CNN model ##
 class BPNN(nn.Module):
     def __init__(self,in_channel,features,out_channels,n1=240,n2=120,n3=60,k1=3,k2=3,k3=3):
-        super(ConvNet,self).__init__()
+        super(BPNN,self).__init__()
         # initialize CNN layers 
         self.conv1 = nn.Conv2d(in_channel,features,kernel_size = k1,stride = 1, padding = 1)
         self.conv2 = nn.Conv2d(features,features*2, kernel_size = k2, stride = 1, padding = 1)
