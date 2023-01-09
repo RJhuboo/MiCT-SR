@@ -18,6 +18,10 @@ class TrainDataset(Dataset):
         HR = io.imread(HR_path) / 255
         LR = io.imread(LR_path) / 255
         mask = io.imread(mask_path) / 255
+        if self.transform:
+            HR = self.transform(HR)
+            LR = self.transform(LR)
+            mask = self.transform(mask)
         return LR, HR, mask, all_images[idx]
         
     def __len__(self):
