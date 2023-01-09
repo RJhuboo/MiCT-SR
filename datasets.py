@@ -6,11 +6,12 @@ from skimage import io
 import torchvision.transforms as transforms
 
 class TrainDataset(Dataset):
-    def __init__(self, HR_dir, LR_dir, mask_dir):
+    def __init__(self, HR_dir, LR_dir, mask_dir,transform):
         super(TrainDataset, self).__init__()
         self.HR_dir = HR_dir
         self.LR_dir = LR_dir
         self.mask_dir = mask_dir
+        self.transform = transform
 
     def __getitem__(self, idx):
         all_images = os.listdir(self.HR_dir)
