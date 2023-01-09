@@ -123,7 +123,7 @@ def objective(trial):
 
         for epoch in range(args.num_epochs):
             model.train()
-            epoch_losses = AverageMete()
+            epoch_losses = AverageMeter()
             bpnn_loss = AverageMeter()
             psnr_train = AverageMeter()
             ssim_train = AverageMeter()
