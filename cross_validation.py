@@ -64,11 +64,7 @@ def objective(trial):
     else:
         device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
     
-    
-    for param in model_bpnn.parameters():
-        param.requires_grad = False
-    model_bpnn.eval()
-                       
+           
     #train_dataset = TrainDataset(args.HR_dir,args.LR_dir)
     index = range(NB_DATA)
     if args.k_fold >1:
@@ -127,7 +123,7 @@ def objective(trial):
 
         for epoch in range(args.num_epochs):
             model.train()
-            epoch_losses = AverageMeter()
+            epoch_losses = AverageMete()
             bpnn_loss = AverageMeter()
             psnr_train = AverageMeter()
             ssim_train = AverageMeter()
@@ -149,6 +145,9 @@ def objective(trial):
                     if torch.cuda.device_count() > 1:
                         model_bpnn = nn.DataParallel(model_bpnn)
                     model_bpnn.to(device)
+                    for param in model_bpnn.parameters():
+                        param.requires_grad = False
+                    model_bpnn.eval()
     
                     P_SR = model_bpnn(masks,preds)
                     P_HR = model_bpnn(masks,labels)
@@ -204,6 +203,9 @@ def objective(trial):
                     if torch.cuda.device_count() > 1:
                         model_bpnn = nn.DataParallel(model_bpnn)
                     model_bpnn.to(device)
+                    for param in model_bpnn.parameters():
+                        param.requires_grad = False
+                    model_bpnn.eval()
                     P_SR = model_bpnn(masks,preds)
                     P_HR = model_bpnn(masks,labels)
                     del model_bpnn
