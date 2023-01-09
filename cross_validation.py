@@ -166,7 +166,7 @@ def objective(trial):
                     t.update(len(inputs))
                     #preds = model(inputs).clamp(0.0, 1.0)
                     psnr_train.update(calc_psnr(labels.cpu(),preds.clamp(0.0,1.0).cpu(),args.mask_dir,imagename,device="cpu").item())
-                    ssim_train.updata(ssim(x=labels.cpu(),y=preds.clamp(0.0,1.0).cpu(),data_range=1.,downsample=False,directory = args.mask_dir,maskname = imagename,device="cpu"))
+                    ssim_train.update(ssim(x=labels.cpu(),y=preds.clamp(0.0,1.0).cpu(),data_range=1.,downsample=False,directory = args.mask_dir,maskname = imagename,device="cpu"))
             
             tr_psnr.append(psnr_train.avg)
             tr_ssim.append(ssim_train.avg)
