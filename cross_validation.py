@@ -66,9 +66,9 @@ def objective(trial):
     
     model_bpnn = BPNN(in_channel=1,features=args.nof, out_channels=args.NB_LABEL, n1= args.n1, n2=args.n2, n3=args.n3, k1=3,k2=3,k3=3).to(device)
     model_bpnn.load_state_dict(torch.load(os.path.join(args.checkpoint_bpnn)))
-    if torch.cuda.device_count() > 1:
-        model_bpnn = nn.DataParallel(model_bpnn)
-    model_bpnn.to(device)
+    #if torch.cuda.device_count() > 1:
+    #    model_bpnn = nn.DataParallel(model_bpnn)
+    model_bpnn.to('cpu')
     
     for param in model_bpnn.parameters():
         param.requires_grad = False
@@ -148,8 +148,8 @@ def objective(trial):
                     inputs, labels, masks = inputs.to(device), labels.to(device), masks.to(device)
                     
                     preds = model(inputs)
-                    P_SR = model_bpnn(masks,preds)
-                    P_HR = model_bpnn(masks,labels)
+                    P_SR = model_bpnn(masks.to('cpu'),preds.to('cpu'))
+                    P_HR = model_bpnn(masks.to('cpu'),labels.to('cpu'))
                     
                     L_SR = criterion(preds, labels)
                     L_BPNN = Lbpnn(P_SR,P_HR)
