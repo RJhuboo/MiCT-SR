@@ -42,16 +42,16 @@ def objective(trial):
     parser.add_argument('--num-epochs', type=int, default=100)
     parser.add_argument('--num-workers', type=int, default=24)
     parser.add_argument('--seed', type=int, default=123)
-    parser.add_argument('--nof', type= int, default = 36)
-    parser.add_argument('--n1', type=int,default = 135)
-    parser.add_argument('--n2', type=int,default = 146)
-    parser.add_argument('--n3', type=int,default = 131)
-    parser.add_argument('--gpu_ids', type=list, default = [0, 1, 3])
-    parser.add_argument('--NB_LABEL', type=int, default = 9)
+    parser.add_argument('--nof', type= int, default = 40)
+    parser.add_argument('--n1', type=int,default = 127)
+    parser.add_argument('--n2', type=int,default = 157)
+    parser.add_argument('--n3', type=int,default = 153)
+    parser.add_argument('--gpu_ids', type=list, default = [0, 1, 2, 3])
+    parser.add_argument('--NB_LABEL', type=int, default = 6)
     parser.add_argument('--k_fold', type=int, default = 1)
     args = parser.parse_args()
 
-    args.outputs_dir = os.path.join(args.outputs_dir, 'BPNN_9p_x{}'.format(args.scale))
+    args.outputs_dir = os.path.join(args.outputs_dir, 'BPNN_6p_x{}'.format(args.scale))
     
     if os.path.exists(args.outputs_dir) == False:
         os.makedirs(args.outputs_dir)
@@ -139,17 +139,18 @@ def objective(trial):
                 t.set_description('epoch: {}/{}'.format(epoch, args.num_epochs - 1))
 
                 for data in train_dataloader:
-                    inputs, labels, masks, imagename = data
+                    inputs, labels, imagename = data#masks, imagename = data
                     inputs = inputs.reshape(inputs.size(0),1,256,256)
                     labels = labels.reshape(labels.size(0),1,512,512)
-                    masks = masks.reshape(masks.size(0),1,512,512)
+                    #masks = masks.reshape(masks.size(0),1,512,512)
                     #inputs, labels, masks = inputs.float(), labels.float(), masks.float()
-                    inputs, labels, masks = inputs.to(device), labels.to(device), masks.to(device)
-                    
+                    #inputs, labels, masks = inputs.to(device), labels.to(device), masks.to(device)
+                    inputs, labels = inputs.to(device), labels.to(device)
+
                     preds = model(inputs)
                        
-                    P_SR = model_bpnn(masks,preds)
-                    P_HR = model_bpnn(masks,labels)
+                    P_SR = model_bpnn(preds)
+                    P_HR = model_bpnn(labels)
                 
                     L_SR = criterion(preds, labels)
                     L_BPNN = Lbpnn(P_SR,P_HR)
@@ -188,17 +189,16 @@ def objective(trial):
                 inputs, labels, masks, imagename = data
                 inputs = inputs.reshape(inputs.size(0),1,256,256)
                 labels = labels.reshape(labels.size(0),1,512,512)
-                masks = masks.reshape(masks.size(0),1,512,512)
+                #masks = masks.reshape(masks.size(0),1,512,512)
                 #inputs, labels, masks = inputs.float(), labels.float(), masks.float()
                 
                 inputs = inputs.to(device)
                 labels = labels.to(device)
-                masks = masks.to(device)
+                #masks = masks.to(device)
                 with torch.no_grad():
-                    preds = model(inputs).clamp(0.0,1.0)
-                    
-                    P_SR = model_bpnn(masks,preds)
-                    P_HR = model_bpnn(masks,labels)
+                    preds = model(inputs).clamp(0.0,1.0)   
+                    P_SR = model_bpnn(preds)
+                    P_HR = model_bpnn(labels)
                     Ltest_SR = criterion(preds, labels) 
                     Ltest_BPNN = Lbpnn(P_SR,P_HR)
                     loss_test = Ltest_SR + (args.alpha[trial] * Ltest_BPNN)
@@ -258,5 +258,5 @@ for n_trial in range(8):
     study["alpha"].append(al)
     study["ssim"].append(ss)
 
-with open("./FSRCNN_9p.pkl","wb") as f:
+with open("./FSRCNN_6p.pkl","wb") as f:
     pickle.dump(study,f)
