@@ -43,14 +43,14 @@ class FSRCNN(nn.Module):
 class NeuralNet(nn.Module):
     def __init__(self,n1,n2,n3,out_channels):
         super().__init__()
-        self.fc1 = nn.Linear((64*64*64)+(512*512),n1)
+        self.fc1 = nn.Linear((64*64*64),n1)
         self.fc2 = nn.Linear(n1,n2)
         self.fc3 = nn.Linear(n2,n3)
         #self.fc5 = nn.Linear(n3,20)
         self.fc4 = nn.Linear(n3,out_channels)
     def forward(self,x):
         #mask = torch.flatten(mask,1)
-        #x = torch.flatten(x,1)
+        x = torch.flatten(x,1)
         #x = torch.cat((x,mask),1)
         x = F.relu(self.fc1(x))
         x = F.relu(self.fc2(x))
