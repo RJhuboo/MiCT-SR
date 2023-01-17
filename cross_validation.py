@@ -244,7 +244,7 @@ def objective(trial):
     i=1
     while os.path.exists(os.path.join(args.outputs_dir,"losses_info"+str(i)+".pkl")) == True:
         i=i+1
-    with open( os.path.join(args.outputs_dir,"losses_info"+str(i)+".pkl"), "wb") as f:
+    #with open( os.path.join(args.outputs_dir,"losses_info"+str(i)+".pkl"), "wb") as f:
         #pickle.dump(training_info,f)
     #print('best epoch: {}, loss: {:.6f}'.format(best_epoch, best_loss))
     return np.min(np.array(cross_bpnn)/args.k_fold), np.max(np.array(cross_psnr)/args.k_fold), args.alpha[trial], np.max(np.array(cross_ssim)/args.k_fold)
