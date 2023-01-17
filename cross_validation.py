@@ -79,8 +79,8 @@ def objective(trial):
         kf = KFold(n_splits = args.k_fold, shuffle=True)
     else:
         kf = train_test_split(index,train_size=6000,test_size=1100,random_state=42)
-    cross_bpnn, cross_score, cross_psnr, cross_ssim = np.zeros(args.num_epochs),np.zeros(args.num_epochs),np.zeros(args.num_epochs),np.zeros(args.num_epochs)
-    cross_bpnn_train, cross_score_train, cross_psnr_train, cross_ssim_train = np.zeros(args.num_epochs),np.zeros(args.num_epochs),np.zeros(args.num_epochs),np.zeros(args.num_epochs)
+    #cross_bpnn, cross_score, cross_psnr, cross_ssim = np.zeros(args.num_epochs),np.zeros(args.num_epochs),np.zeros(args.num_epochs),np.zeros(args.num_epochs)
+    #cross_bpnn_train, cross_score_train, cross_psnr_train, cross_ssim_train = np.zeros(args.num_epochs),np.zeros(args.num_epochs),np.zeros(args.num_epochs),np.zeros(args.num_epochs)
     for k in range(1):
     # for train_index, test_index in kf.split(index):
         train_index = kf[0]
@@ -167,18 +167,18 @@ def objective(trial):
                     t.set_postfix(loss='{:.6f}'.format(epoch_losses.avg))
                     t.update(len(inputs))
                     #preds = model(inputs).clamp(0.0, 1.0)
-             #       psnr_train.update(calc_psnr(labels.cpu(),preds.clamp(0.0,1.0).cpu(),args.mask_dir,imagename,device="cpu").item())
-             #       ssim_train.update(ssim(x=labels.cpu(),y=preds.clamp(0.0,1.0).cpu(),data_range=1.,downsample=False,directory = args.mask_dir,maskname = imagename,device="cpu"))
+                    psnr_train.update(calc_psnr(labels.cpu(),preds.clamp(0.0,1.0).cpu(),args.mask_dir,imagename,device="cpu").item())
+                    ssim_train.update(ssim(x=labels.cpu(),y=preds.clamp(0.0,1.0).cpu(),data_range=1.,downsample=False,directory = args.mask_dir,maskname = imagename,device="cpu"))
             
-            #tr_psnr.append(psnr_train.avg)
-            #tr_ssim.append(ssim_train.avg)
-            #tr_score.append(epoch_losses.avg)
-            #tr_bpnn.append(bpnn_loss.avg)
+            tr_psnr.append(psnr_train.avg)
+            tr_ssim.append(ssim_train.avg)
+            tr_score.append(epoch_losses.avg)
+            tr_bpnn.append(bpnn_loss.avg)
             print("##### Train #####")
             print("BPNN loss: {:.6f}".format(bpnn_loss.avg))
             print("train loss : {:.6f}".format(epoch_losses.avg))
             #torch.save(model.state_dict(), os.path.join(args.outputs_dir, 'epoch_{}.pth'.format(epoch)))
-            #del psnr_train,ssim_train,epoch_losses,bpnn_loss
+            del psnr_train,ssim_train,epoch_losses,bpnn_loss
             
             psnr = AverageMeter()
             ssim_list = AverageMeter()
@@ -202,19 +202,19 @@ def objective(trial):
                     Ltest_SR = criterion(preds, labels) 
                     Ltest_BPNN = Lbpnn(P_SR,P_HR)
                     loss_test = Ltest_SR + (args.alpha[trial] * Ltest_BPNN)
-           #         epoch_losses_test.update(loss_test.item())
-          #          bpnn_loss_test.update(Ltest_BPNN.item())
-          #          psnr.update(calc_psnr(labels,preds,args.mask_dir,imagename,device).item())
-          #          ssim_list.update(ssim(x=labels,y=preds,data_range=1.,downsample=False,directory = args.mask_dir,maskname = imagename))
-          #  print("##### Test #####")
-          #  print('eval loss: {:.6f}'.format(epoch_losses_test.avg))
-          #  print('bpnn loss: {:.6f}'.format(bpnn_loss_test.avg))
-          #  print('psnr : {:.6f}'.format(psnr.avg))
-          #  print('ssim : {:.6f}'.format(ssim_list.avg))
-          #  t_score.append(epoch_losses_test.avg)
-          #  t_bpnn.append(bpnn_loss_test.avg)
-          #  t_psnr.append(psnr.avg)
-          #  t_ssim.append(ssim_list.avg)
+                    epoch_losses_test.update(loss_test.item())
+                    bpnn_loss_test.update(Ltest_BPNN.item())
+                    psnr.update(calc_psnr(labels,preds,args.mask_dir,imagename,device).item())
+                    ssim_list.update(ssim(x=labels,y=preds,data_range=1.,downsample=False,directory = args.mask_dir,maskname = imagename))
+            print("##### Test #####")
+            print('eval loss: {:.6f}'.format(epoch_losses_test.avg))
+            print('bpnn loss: {:.6f}'.format(bpnn_loss_test.avg))
+            print('psnr : {:.6f}'.format(psnr.avg))
+            print('ssim : {:.6f}'.format(ssim_list.avg))
+            t_score.append(epoch_losses_test.avg)
+            t_bpnn.append(bpnn_loss_test.avg)
+            t_psnr.append(psnr.avg)
+            t_ssim.append(ssim_list.avg)
           #  if epoch_losses_test.avg < best_loss:
           #      best_epoch = epoch
           #      best_loss = epoch_losses_test.avg
@@ -241,22 +241,32 @@ def objective(trial):
      #                "train_ssim": cross_ssim_train/args.k_fold,
      #                "train_psnr": cross_psnr_train/args.k_fold
      #               }
+    training_info = {"loss_train": tr_score,
+                     "loss_val": t_score,
+                     "bpnn_train" : tr_bpnn,
+                     "bpnn_val": t_bpnn,
+                     "psnr": t_psnr,
+                     "ssim": t_ssim,
+                     "train_ssim": tr_ssim,
+                     "train_psnr": tr_psnr
+                    }
     i=1
     while os.path.exists(os.path.join(args.outputs_dir,"losses_info"+str(i)+".pkl")) == True:
         i=i+1
-    #with open( os.path.join(args.outputs_dir,"losses_info"+str(i)+".pkl"), "wb") as f:
-        #pickle.dump(training_info,f)
+    with open( os.path.join(args.outputs_dir,"losses_info"+str(i)+".pkl"), "wb") as f:
+        pickle.dump(training_info,f)
     #print('best epoch: {}, loss: {:.6f}'.format(best_epoch, best_loss))
-    return np.min(np.array(cross_bpnn)/args.k_fold), np.max(np.array(cross_psnr)/args.k_fold), args.alpha[trial], np.max(np.array(cross_ssim)/args.k_fold)
-        #torch.save(best_weights, os.path.join(args.outputs_dir, 'best.pth'))
+    #return np.min(np.array(cross_bpnn)/args.k_fold), np.max(np.array(cross_psnr)/args.k_fold), args.alpha[trial], np.max(np.array(cross_ssim)/args.k_fold)
+    return np.min(np.array(t_bpnn)),np.max(np.array(t_psnr)),args.alpha[trial],np.max(np.array(t_ssim)),
+    #torch.save(best_weights, os.path.join(args.outputs_dir, 'best.pth'))
 
 study= {"bpnn" :[], "psnr": [], "alpha": [],"ssim":[]}
 for n_trial in range(8):
     bp,ps,al,ss = objective(n_trial)
-    #study["bpnn"].append(bp)
-    #study["psnr"].append(ps)
-    #study["alpha"].append(al)
-    #study["ssim"].append(ss)
+    study["bpnn"].append(bp)
+    study["psnr"].append(ps)
+    study["alpha"].append(al)
+    study["ssim"].append(ss)
 
 with open("./FSRCNN_6p.pkl","wb") as f:
     pickle.dump(study,f)
