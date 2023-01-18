@@ -158,7 +158,7 @@ def objective(trial):
                     loss = L_SR + (args.alpha[trial] * L_BPNN)
                     
                     #epoch_losses.update(loss.item(),len(inputs))
-                    #bpnn_loss.update(L_BPNN.item(),len(inputs))
+                    bpnn_loss.update(L_BPNN.item(),len(inputs))
                     optimizer.zero_grad()
                     #loss.backward()
                     loss.mean().backward()
@@ -170,10 +170,10 @@ def objective(trial):
                     psnr_train.update(calc_psnr(labels.cpu(),preds.clamp(0.0,1.0).cpu(),args.mask_dir,imagename,device="cpu").item())
                     ssim_train.update(ssim(x=labels.cpu(),y=preds.clamp(0.0,1.0).cpu(),data_range=1.,downsample=False,directory = args.mask_dir,maskname = imagename,device="cpu"))
             
-            #tr_psnr.append(psnr_train.avg)
-            #tr_ssim.append(ssim_train.avg)
+            tr_psnr.append(psnr_train.avg)
+            tr_ssim.append(ssim_train.avg)
             #tr_score.append(epoch_losses.avg)
-            #tr_bpnn.append(bpnn_loss.avg)
+            tr_bpnn.append(bpnn_loss.avg)
             print("##### Train #####")
             print("BPNN loss: {:.6f}".format(bpnn_loss.avg))
             print("train loss : {:.6f}".format(epoch_losses.avg))
@@ -212,9 +212,9 @@ def objective(trial):
             print('psnr : {:.6f}'.format(psnr.avg))
             print('ssim : {:.6f}'.format(ssim_list.avg))
             #t_score.append(epoch_losses_test.avg)
-            #t_bpnn.append(bpnn_loss_test.avg)
-            #t_psnr.append(psnr.avg)
-            #t_ssim.append(ssim_list.avg)
+            t_bpnn.append(bpnn_loss_test.avg)
+            t_psnr.append(psnr.avg)
+            t_ssim.append(ssim_list.avg)
           #  if epoch_losses_test.avg < best_loss:
           #      best_epoch = epoch
           #      best_loss = epoch_losses_test.avg
