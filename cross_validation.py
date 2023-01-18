@@ -170,15 +170,15 @@ def objective(trial):
                     psnr_train.update(calc_psnr(labels.cpu(),preds.clamp(0.0,1.0).cpu(),args.mask_dir,imagename,device="cpu").item())
                     ssim_train.update(ssim(x=labels.cpu(),y=preds.clamp(0.0,1.0).cpu(),data_range=1.,downsample=False,directory = args.mask_dir,maskname = imagename,device="cpu"))
             
-            tr_psnr.append(psnr_train.avg)
-            tr_ssim.append(ssim_train.avg)
-            tr_score.append(epoch_losses.avg)
-            tr_bpnn.append(bpnn_loss.avg)
+            #tr_psnr.append(psnr_train.avg)
+            #tr_ssim.append(ssim_train.avg)
+            #tr_score.append(epoch_losses.avg)
+            #tr_bpnn.append(bpnn_loss.avg)
             print("##### Train #####")
             print("BPNN loss: {:.6f}".format(bpnn_loss.avg))
             print("train loss : {:.6f}".format(epoch_losses.avg))
             #torch.save(model.state_dict(), os.path.join(args.outputs_dir, 'epoch_{}.pth'.format(epoch)))
-            del psnr_train,ssim_train,epoch_losses,bpnn_loss
+            #del psnr_train,ssim_train,epoch_losses,bpnn_loss
             
             psnr = AverageMeter()
             ssim_list = AverageMeter()
@@ -211,10 +211,10 @@ def objective(trial):
             print('bpnn loss: {:.6f}'.format(bpnn_loss_test.avg))
             print('psnr : {:.6f}'.format(psnr.avg))
             print('ssim : {:.6f}'.format(ssim_list.avg))
-            t_score.append(epoch_losses_test.avg)
-            t_bpnn.append(bpnn_loss_test.avg)
-            t_psnr.append(psnr.avg)
-            t_ssim.append(ssim_list.avg)
+            #t_score.append(epoch_losses_test.avg)
+            #t_bpnn.append(bpnn_loss_test.avg)
+            #t_psnr.append(psnr.avg)
+            #t_ssim.append(ssim_list.avg)
           #  if epoch_losses_test.avg < best_loss:
           #      best_epoch = epoch
           #      best_loss = epoch_losses_test.avg
