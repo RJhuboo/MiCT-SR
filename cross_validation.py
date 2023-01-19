@@ -22,9 +22,20 @@ from datasets import TrainDataset
 from utils import AverageMeter, calc_psnr
 from ssim import ssim
 import time
+import sys
+import psutil
 
 NB_DATA = 7100
 
+print("memory usage:",psutil.Process().memory_info().rss / (1024 * 1024))
+
+# Calculate memory information
+memory = psutil.virtual_memory()
+# Convert Bytes to MB (Bytes -> KB -> MB)
+available = round(memory.available/1024.0/1024.0,1)
+total = round(memory.total/1024.0/1024.0,1)
+mem_info = str(available) + 'MB free / ' + str(total) + 'MB total ( ' + str(memory.percent) + '% )'
+print(mem_info)
 
 def objective(trial):
     parser = argparse.ArgumentParser()
@@ -130,6 +141,13 @@ def objective(trial):
         #start = time.time()
 
         for epoch in range(args.num_epochs):
+            # Calculate memory information
+            memory = psutil.virtual_memory()
+            # Convert Bytes to MB (Bytes -> KB -> MB)
+            available = round(memory.available/1024.0/1024.0,1)
+            total = round(memory.total/1024.0/1024.0,1)
+            mem_info = str(available) + 'MB free / ' + str(total) + 'MB total ( ' + str(memory.percent) + '% )'
+            print(mem_info)
             model.train()
             epoch_losses = AverageMeter()
             bpnn_loss = AverageMeter()
@@ -157,7 +175,7 @@ def objective(trial):
                                         
                     loss = L_SR + (args.alpha[trial] * L_BPNN)
                     
-                    #epoch_losses.update(loss.item(),len(inputs))
+                    epoch_losses.update(loss.item(),len(inputs))
                     bpnn_loss.update(L_BPNN.item(),len(inputs))
                     optimizer.zero_grad()
                     #loss.backward()
@@ -167,13 +185,29 @@ def objective(trial):
                     t.set_postfix(loss='{:.6f}'.format(epoch_losses.avg))
                     t.update(len(inputs))
                     #preds = model(inputs).clamp(0.0, 1.0)
-                    psnr_train.update(calc_psnr(labels.cpu(),preds.clamp(0.0,1.0).cpu(),args.mask_dir,imagename,device="cpu").item())
-                    ssim_train.update(ssim(x=labels.cpu(),y=preds.clamp(0.0,1.0).cpu(),data_range=1.,downsample=False,directory = args.mask_dir,maskname = imagename,device="cpu"))
-            
+                    with torch.no_grad():
+                        psnr_train.update(calc_psnr(labels.cpu(),preds.clamp(0.0,1.0).cpu(),args.mask_dir,imagename,device="cpu").item())
+                        ssim_train.update(ssim(x=labels.cpu(),y=preds.clamp(0.0,1.0).cpu(),data_range=1.,downsample=False,directory = args.mask_dir,maskname = imagename,device="cpu"))
+                        # Calculate memory information
+                        memory = psutil.virtual_memory()
+                        # Convert Bytes to MB (Bytes -> KB -> MB)
+                        available = round(memory.available/1024.0/1024.0,1)
+                        total = round(memory.total/1024.0/1024.0,1)
+                        mem_info = str(available) + 'MB free / ' + str(total) + 'MB total ( ' + str(memory.percent) + '% )'
+                        print("après psnr ssim dans batch:",mem_info)
+
             tr_psnr.append(psnr_train.avg)
             tr_ssim.append(ssim_train.avg)
-            #tr_score.append(epoch_losses.avg)
+            tr_score.append(epoch_losses.avg)
             tr_bpnn.append(bpnn_loss.avg)
+            # Calculate memory information
+            memory = psutil.virtual_memory()
+            # Convert Bytes to MB (Bytes -> KB -> MB)
+            available = round(memory.available/1024.0/1024.0,1)
+            total = round(memory.total/1024.0/1024.0,1)
+            mem_info = str(available) + 'MB free / ' + str(total) + 'MB total ( ' + str(memory.percent) + '% )'
+            print("apres append:",mem_info)
+
             print("##### Train #####")
             print("BPNN loss: {:.6f}".format(bpnn_loss.avg))
             print("train loss : {:.6f}".format(epoch_losses.avg))
@@ -206,15 +240,31 @@ def objective(trial):
                     bpnn_loss_test.update(Ltest_BPNN.item())
                     psnr.update(calc_psnr(labels,preds,args.mask_dir,imagename,device).item())
                     ssim_list.update(ssim(x=labels,y=preds,data_range=1.,downsample=False,directory = args.mask_dir,maskname = imagename))
+            # Calculate memory information
+            memory = psutil.virtual_memory()
+            # Convert Bytes to MB (Bytes -> KB -> MB)
+            available = round(memory.available/1024.0/1024.0,1)
+            total = round(memory.total/1024.0/1024.0,1)
+            mem_info = str(available) + 'MB free / ' + str(total) + 'MB total ( ' + str(memory.percent) + '% )'
+            print("avant 2eme appand",mem_info)
+
             print("##### Test #####")
             print('eval loss: {:.6f}'.format(epoch_losses_test.avg))
             print('bpnn loss: {:.6f}'.format(bpnn_loss_test.avg))
             print('psnr : {:.6f}'.format(psnr.avg))
             print('ssim : {:.6f}'.format(ssim_list.avg))
-            #t_score.append(epoch_losses_test.avg)
+            t_score.append(epoch_losses_test.avg)
             t_bpnn.append(bpnn_loss_test.avg)
             t_psnr.append(psnr.avg)
             t_ssim.append(ssim_list.avg)
+            # Calculate memory information
+            memory = psutil.virtual_memory()
+            # Convert Bytes to MB (Bytes -> KB -> MB)
+            available = round(memory.available/1024.0/1024.0,1)
+            total = round(memory.total/1024.0/1024.0,1)
+            mem_info = str(available) + 'MB free / ' + str(total) + 'MB total ( ' + str(memory.percent) + '% )'
+            print("apres 2eme append",mem_info)
+
           #  if epoch_losses_test.avg < best_loss:
           #      best_epoch = epoch
           #      best_loss = epoch_losses_test.avg
