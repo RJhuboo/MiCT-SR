@@ -24,6 +24,7 @@ from ssim import ssim
 import time
 import sys
 import psutil
+from PIL import Image
 
 NB_DATA = 7100
 
@@ -144,14 +145,27 @@ def objective(trial):
                     inputs, labels, imagename = data#masks, imagename = data
                     inputs = inputs.reshape(inputs.size(0),1,256,256)
                     labels = labels.reshape(labels.size(0),1,512,512)
-                    #masks = masks.reshape(masks.size(0),1,512,512)
+                    masks = masks.reshape(masks.size(0),1,512,512)
                     #inputs, labels, masks = inputs.float(), labels.float(), masks.float()
                     #inputs, labels, masks = inputs.to(device), labels.to(device), masks.to(device)
-                    inputs, labels = inputs.to(device), labels.to(device)
+                    inputs, labels, masks = inputs.to(device), labels.to(device), masks.to(device)
 
                     preds = model(inputs)
-                       
-                    P_SR = model_bpnn(preds)
+                    
+                    gaussian_blur = T.GaussianBlur((5,5),3)
+                    labels = gaussian_blur(labels)
+                    preds = preds.cpu().detach().numpy()
+                    labels = labels.cpu().detach().numpy()
+                    t1, t2 = threshold_otsu(preds),threshold_otsu(labels)
+                    preds, labels = preds>t1, labels>t2
+                    labels = labels.astype("float32")
+                    preds = preds.astype("float32")
+                    im = Image.fromarray(preds)
+                    im.save("black_white.jpeg")
+                    #fake_B = np.ndarray(shape=,dtype)
+                    preds = torch.from_numpy(preds).to(self.device)
+                    labels = torch.from_numpy(labels).to(self.device)
+                    P_SR = model_bpnn(masks,preds)
                     P_HR = model_bpnn(labels)
                 
                     L_SR = criterion(preds, labels)
@@ -172,13 +186,7 @@ def objective(trial):
                     with torch.no_grad():
                         psnr_train.update(calc_psnr(labels.cpu(),preds.clamp(0.0,1.0).cpu(),args.mask_dir,imagename,device="cpu").item())
                         ssim_train.update(ssim(x=labels.cpu(),y=preds.clamp(0.0,1.0).cpu(),data_range=1.,downsample=False,directory = args.mask_dir,maskname = imagename,device="cpu"))
-                        # Calculate memory information
-                        memory = psutil.virtual_memory()
-                        # Convert Bytes to MB (Bytes -> KB -> MB)
-                        available = round(memory.available/1024.0/1024.0,1)
-                        total = round(memory.total/1024.0/1024.0,1)
-                        mem_info = str(available) + 'MB free / ' + str(total) + 'MB total ( ' + str(memory.percent) + '% )'
-                        print("après psnr ssim dans batch:",mem_info)
+                        
 
             tr_psnr.append(psnr_train.avg)
             tr_ssim.append(ssim_train.avg)
@@ -218,6 +226,7 @@ def objective(trial):
                     bpnn_loss_test.update(Ltest_BPNN.item())
                     psnr.update(calc_psnr(labels,preds,args.mask_dir,imagename,device).item())
                     ssim_list.update(ssim(x=labels,y=preds,data_range=1.,downsample=False,directory = args.mask_dir,maskname = imagename))
+                    
             print("##### Test #####")
             print('eval loss: {:.6f}'.format(epoch_losses_test.avg))
             print('bpnn loss: {:.6f}'.format(bpnn_loss_test.avg))
