@@ -27,15 +27,6 @@ import psutil
 
 NB_DATA = 7100
 
-print("memory usage:",psutil.Process().memory_info().rss / (1024 * 1024))
-
-# Calculate memory information
-memory = psutil.virtual_memory()
-# Convert Bytes to MB (Bytes -> KB -> MB)
-available = round(memory.available/1024.0/1024.0,1)
-total = round(memory.total/1024.0/1024.0,1)
-mem_info = str(available) + 'MB free / ' + str(total) + 'MB total ( ' + str(memory.percent) + '% )'
-print(mem_info)
 
 def objective(trial):
     parser = argparse.ArgumentParser()
@@ -43,7 +34,7 @@ def objective(trial):
     parser.add_argument('--LR_dir', type=str,default = "./data/LR/Train_trab")
     parser.add_argument('--mask_dir',type=str,default = "./data/HR/Train_trab_mask")
     parser.add_argument('--outputs-dir', type=str, default = "./FSRCNN_search")
-    parser.add_argument('--checkpoint_bpnn', type= str, default = "./checkpoints_bpnn/BPNN_checkpoint_nomask.pth")
+    parser.add_argument('--checkpoint_bpnn', type= str, default = "./checkpoints_bpnn/BPNN_checkpoint_249.pth")
     parser.add_argument('--alpha', default = [0,10**(-3),10**(-1),10**(-4),5*10**(-4),5*10**(-3),4*10**(-2),5*10**(-5)])
     parser.add_argument('--Loss_bpnn', default = MSELoss)
     parser.add_argument('--weights-file', type=str)
@@ -141,13 +132,6 @@ def objective(trial):
         #start = time.time()
 
         for epoch in range(args.num_epochs):
-            # Calculate memory information
-            memory = psutil.virtual_memory()
-            # Convert Bytes to MB (Bytes -> KB -> MB)
-            available = round(memory.available/1024.0/1024.0,1)
-            total = round(memory.total/1024.0/1024.0,1)
-            mem_info = str(available) + 'MB free / ' + str(total) + 'MB total ( ' + str(memory.percent) + '% )'
-            print(mem_info)
             model.train()
             epoch_losses = AverageMeter()
             bpnn_loss = AverageMeter()
@@ -200,13 +184,7 @@ def objective(trial):
             tr_ssim.append(ssim_train.avg)
             tr_score.append(epoch_losses.avg)
             tr_bpnn.append(bpnn_loss.avg)
-            # Calculate memory information
-            memory = psutil.virtual_memory()
-            # Convert Bytes to MB (Bytes -> KB -> MB)
-            available = round(memory.available/1024.0/1024.0,1)
-            total = round(memory.total/1024.0/1024.0,1)
-            mem_info = str(available) + 'MB free / ' + str(total) + 'MB total ( ' + str(memory.percent) + '% )'
-            print("apres append:",mem_info)
+
 
             print("##### Train #####")
             print("BPNN loss: {:.6f}".format(bpnn_loss.avg))
@@ -240,14 +218,6 @@ def objective(trial):
                     bpnn_loss_test.update(Ltest_BPNN.item())
                     psnr.update(calc_psnr(labels,preds,args.mask_dir,imagename,device).item())
                     ssim_list.update(ssim(x=labels,y=preds,data_range=1.,downsample=False,directory = args.mask_dir,maskname = imagename))
-            # Calculate memory information
-            memory = psutil.virtual_memory()
-            # Convert Bytes to MB (Bytes -> KB -> MB)
-            available = round(memory.available/1024.0/1024.0,1)
-            total = round(memory.total/1024.0/1024.0,1)
-            mem_info = str(available) + 'MB free / ' + str(total) + 'MB total ( ' + str(memory.percent) + '% )'
-            print("avant 2eme appand",mem_info)
-
             print("##### Test #####")
             print('eval loss: {:.6f}'.format(epoch_losses_test.avg))
             print('bpnn loss: {:.6f}'.format(bpnn_loss_test.avg))
@@ -257,13 +227,7 @@ def objective(trial):
             t_bpnn.append(bpnn_loss_test.avg)
             t_psnr.append(psnr.avg)
             t_ssim.append(ssim_list.avg)
-            # Calculate memory information
-            memory = psutil.virtual_memory()
-            # Convert Bytes to MB (Bytes -> KB -> MB)
-            available = round(memory.available/1024.0/1024.0,1)
-            total = round(memory.total/1024.0/1024.0,1)
-            mem_info = str(available) + 'MB free / ' + str(total) + 'MB total ( ' + str(memory.percent) + '% )'
-            print("apres 2eme append",mem_info)
+
 
           #  if epoch_losses_test.avg < best_loss:
           #      best_epoch = epoch
