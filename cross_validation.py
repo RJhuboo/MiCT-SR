@@ -169,7 +169,7 @@ def objective(trial):
                     
                     L_SR = criterion(preds, labels)
                     L_BPNN = Lbpnn(P_SR,P_HR)
-                                        
+                    print("Loss bpnn:",L_BPNN.item())           
                     loss = L_SR + (args.alpha[trial] * L_BPNN)
                     
                     epoch_losses.update(loss.item(),len(inputs))
@@ -233,6 +233,7 @@ def objective(trial):
 
                     Ltest_SR = criterion(preds, labels)
                     Ltest_BPNN = Lbpnn(P_SR,P_HR)
+                    print("Loss test BPNN:",Ltest_BPNN.item())
                     loss_test = Ltest_SR + (args.alpha[trial] * Ltest_BPNN)
                     epoch_losses_test.update(loss_test.item())
                     bpnn_loss_test.update(Ltest_BPNN.item())
