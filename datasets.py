@@ -5,7 +5,7 @@ from skimage import io
 import torchvision.transforms as transforms
 
 class TrainDataset(Dataset):
-    def __init__(self, HR_dir, LR_dir, mask_dir,transform):
+    def __init__(self, HR_dir, LR_dir, mask_dir=None,transform=None):
         super(TrainDataset, self).__init__()
         self.HR_dir = HR_dir
         self.LR_dir = LR_dir

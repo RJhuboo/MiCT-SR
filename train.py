@@ -59,16 +59,16 @@ if __name__ == '__main__':
         device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
     
     # Load BPNN
-    model_bpnn = BPNN(args.nof, args.NB_LABEL, n1= args.n1, n2=args.n2, n3=args.n3, k1=3,k2=3,k3=3).to(device)
-    model_bpnn.load_state_dict(torch.load(os.path.join(args.checkpoint_bpnn)))
-    if torch.cuda.device_count() > 1:
-        model_bpnn = nn.DataParallel(model_bpnn)
-    model_bpnn.to(device)
+    #model_bpnn = BPNN(args.nof, args.NB_LABEL, n1= args.n1, n2=args.n2, n3=args.n3, k1=3,k2=3,k3=3).to(device)
+    #model_bpnn.load_state_dict(torch.load(os.path.join(args.checkpoint_bpnn)))
+    #if torch.cuda.device_count() > 1:
+    #    model_bpnn = nn.DataParallel(model_bpnn)
+    #model_bpnn.to(device)
     
     # Freeze BPNN
-    for param in model_bpnn.parameters():
-        param.requires_grad = False
-    model_bpnn.eval()
+    #for param in model_bpnn.parameters():
+    #    param.requires_grad = False
+    #model_bpnn.eval()
                        
     cross_bpnn, cross_score, cross_psnr = [], [], []
     
@@ -121,18 +121,18 @@ if __name__ == '__main__':
                 inputs, labels= inputs.float(), labels.float()
                 inputs, labels = inputs.to(device), labels.to(device)
                 preds = model(inputs)
-                P_SR = model_bpnn(preds)
-                P_HR = model_bpnn(labels)
+                #P_SR = model_bpnn(preds)
+                #P_HR = model_bpnn(labels)
 
                 # Loss
                 L_SR = criterion(preds, labels)
-                L_BPNN = Lbpnn(P_SR,P_HR)
+                #L_BPNN = Lbpnn(P_SR,P_HR)
                 print("LSR:",L_SR)
-                print("LBPNN:",L_BPNN)
-                loss = L_SR + (args.alpha * L_BPNN)
+                #print("LBPNN:",L_BPNN)
+                loss = L_SR #+ (args.alpha * L_BPNN)
 
                 epoch_losses.update(loss.item(), len(inputs))
-                bpnn_loss.update(L_BPNN.item(), len(inputs))
+                #bpnn_loss.update(L_BPNN.item(), len(inputs))
                 
                 # Backward
                 optimizer.zero_grad()

@@ -9,6 +9,7 @@ from torch.nn import L1Loss, MSELoss
 import torch.optim as optim
 import torch.backends.cudnn as cudnn
 from torch.utils.data.dataloader import DataLoader
+import torchvision
 import torchvision.transforms as transforms
 from skimage.filters import threshold_otsu 
 import pytorch_ssim
@@ -73,9 +74,9 @@ def objective(trial):
     if torch.cuda.device_count() > 1:
         model_bpnn = nn.DataParallel(model_bpnn)
     model_bpnn.to(device)
-    for param in model_bpnn.parameters():
-        param.requires_grad = False
-    model_bpnn.eval()
+    #for param in model_bpnn.parameters():
+    #    param.requires_grad = False
+    #model_bpnn.eval()
                     
     #train_dataset = TrainDataset(args.HR_dir,args.LR_dir)
     index = range(NB_DATA)
@@ -150,48 +151,53 @@ def objective(trial):
                     #inputs, labels, masks = inputs.float(), labels.float(), masks.float()
                     #inputs, labels, masks = inputs.to(device), labels.to(device), masks.to(device)
                     inputs, labels, masks = inputs.to(device), labels.to(device), masks.to(device)
-
+                    #torchvision.utils.save_image(inputs,'inputs.png')
                     preds = model(inputs)
-                    
+                    #torchvision.utils.save_image(preds,'preds.png')
                     gaussian_blur = transforms.GaussianBlur((5,5),3)
                     labels_bin = labels.clone()
                     labels = gaussian_blur(labels)
                     preds_bin = preds.clone().cpu().detach().numpy()
                     labels_bin = labels_bin.cpu().detach().numpy()
                     #t1, t2 = threshold_otsu(preds_bin),threshold_otsu(labels_bin)
+                    #print(torch.max(preds),torch.min(preds))
+                    #print(torch.max(labels),torch.min(labels))
                     preds_bin, labels_bin = preds_bin>0.24, labels_bin>0.24
+                    #print(np.shape(preds))
+                    #im=Image.fromarray(preds_bin.reshape((512,512)) * 255)
+                    #im.save("image.png")
                     labels_bin = labels_bin.astype("float32")
                     preds_bin = preds_bin.astype("float32")
                     preds_bin = torch.from_numpy(preds_bin).to(device)
                     labels_bin = torch.from_numpy(labels_bin).to(device)
+                    #torchvision.utils.save_image(labels_bin, 'labels_bin.png') 
+                    #torchvision.utils.save_image(labels,'labels.png')
+                    #torchvision.utils.save_image(preds,'preds.png')
                     P_SR = model_bpnn(masks,preds_bin)
                     P_HR = model_bpnn(masks,labels_bin)
                     
                     L_SR = criterion(preds, labels)
-                    L_BPNN = Lbpnn(P_SR,P_HR)
-                    print("Loss bpnn:",L_BPNN.item())           
-                    loss = L_SR + (args.alpha[trial] * L_BPNN)
+                    L_BPNN = Lbpnn(P_SR,P_HR)           
+                    loss = L_SR #+ (args.alpha[trial] * L_BPNN)
                     
                     epoch_losses.update(loss.item(),len(inputs))
                     bpnn_loss.update(L_BPNN.item(),len(inputs))
                     optimizer.zero_grad()
-                    #loss.backward()
-                    loss.mean().backward()
+                    L_SR.backward()
+                    #L_SR.mean().backward()
                     optimizer.step() 
-
-                    t.set_postfix(loss='{:.6f}'.format(epoch_losses.avg))
+                    t.set_postfix(loss='{:.6f}'.format(epoch_losses.avg),bpnn='{:.3f}'.format(bpnn_loss.avg))
                     t.update(len(inputs))
                     #preds = model(inputs).clamp(0.0, 1.0)
                     #with torch.no_grad():
                     #    psnr_train.update(calc_psnr(labels.cpu(),preds.clamp(0.0,1.0).cpu(),args.mask_dir,imagename,device="cpu").item())
                     #    ssim_train.update(ssim(x=labels.cpu(),y=preds.clamp(0.0,1.0).cpu(),data_range=1.,downsample=False,directory = args.mask_dir,maskname = imagename,device="cpu"))
                         
-
             tr_psnr.append(psnr_train.avg)
             tr_ssim.append(ssim_train.avg)
             tr_score.append(epoch_losses.avg)
             tr_bpnn.append(bpnn_loss.avg)
-
+            print(torch.max(preds),torch.min(preds))
 
             print("##### Train #####")
             print("BPNN loss: {:.6f}".format(bpnn_loss.avg))
@@ -233,7 +239,7 @@ def objective(trial):
 
                     Ltest_SR = criterion(preds, labels)
                     Ltest_BPNN = Lbpnn(P_SR,P_HR)
-                    print("Loss test BPNN:",Ltest_BPNN.item())
+                    
                     loss_test = Ltest_SR + (args.alpha[trial] * Ltest_BPNN)
                     epoch_losses_test.update(loss_test.item())
                     bpnn_loss_test.update(Ltest_BPNN.item())
