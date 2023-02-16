@@ -44,7 +44,7 @@ def objective(trial):
     parser.add_argument('--LR_dir', type=str,default = "./data/LR/Train_trab")
     parser.add_argument('--mask_dir',type=str,default = "./data/HR/Train_trab_mask")
     parser.add_argument('--outputs-dir', type=str, default = "./FSRCNN_search")
-    parser.add_argument('--checkpoint_bpnn', type= str, default = "./checkpoints_bpnn/BPNN_checkpoint_249.pth")
+    parser.add_argument('--checkpoint_bpnn', type= str, default = "./checkpoints_bpnn/BPNN_checkpoint_7p.pth")
     parser.add_argument('--alpha', default = [0,10**(-3),10**(-1),10**(-4),5*10**(-4),5*10**(-3),4*10**(-2),5*10**(-5)])
     parser.add_argument('--Loss_bpnn', default = MSELoss)
     parser.add_argument('--weights-file', type=str)
@@ -54,20 +54,21 @@ def objective(trial):
     parser.add_argument('--num-epochs', type=int, default=90)
     parser.add_argument('--num-workers', type=int, default=24)
     parser.add_argument('--seed', type=int, default=123)
-    parser.add_argument('--nof', type= int, default = 36)
-    parser.add_argument('--n1', type=int,default = 135)
-    parser.add_argument('--n2', type=int,default = 146)
-    parser.add_argument('--n3', type=int,default = 131)
+    parser.add_argument('--nof', type= int, default = 64)
+    parser.add_argument('--n1', type=int,default = 158)
+    parser.add_argument('--n2', type=int,default = 152)
+    parser.add_argument('--n3', type=int,default = 83)
     parser.add_argument('--gpu_ids', type=list, default = [0, 1, 2])
-    parser.add_argument('--NB_LABEL', type=int, default = 9)
+    parser.add_argument('--NB_LABEL', type=int, default = 7)
     parser.add_argument('--k_fold', type=int, default = 1)
     args = parser.parse_args()
 
-    args.outputs_dir = os.path.join(args.outputs_dir, 'BPNN_9p2_x{}'.format(args.scale))
+    args.outputs_dir = os.path.join(args.outputs_dir, 'BPNN_7p_x{}'.format(args.scale))
     
     if os.path.exists(args.outputs_dir) == False:
         os.makedirs(args.outputs_dir)
-
+    if os.path.exists("save_image/alpha_"+str(args.alpha[trial])) == False:
+        os.makedirs("save_image/alpha_"+str(args.alpha[trial]))
     cudnn.benchmark = True
     
     if torch.cuda.device_count() > 1:
@@ -121,6 +122,7 @@ def objective(trial):
         #])
         
         dataset = TrainDataset(args.HR_dir, args.LR_dir, args.mask_dir,transform = my_transforms)
+        dataset_test = TestDataset("../BPNN/Test_trab","./data/LR/Test_trab","../BPNN/Test_trab_mask")
         train_dataloader = DataLoader(dataset=dataset,
                                       batch_size=args.batch_size,
                                       sampler=train_index,
@@ -129,16 +131,19 @@ def objective(trial):
         eval_dataloader = DataLoader(dataset=dataset, 
                                      sampler=test_index,
                                      batch_size=1,
-                                     num_workers=args.num_workers)    
+                                     num_workers=args.num_workers)
+        test_dataloader = DataLoader(dataset=dataset_test,batch_size=1,num_workers=args.num_workers)
         print(len(eval_dataloader))
+        print(len(test_dataloader))
         best_weights = copy.deepcopy(model.state_dict())
         best_epoch = 0
         best_loss = 10
         tr_psnr = []
         tr_ssim = []
-        t_score, tr_score, tr_bpnn, t_bpnn, t_psnr,t_ssim = [], [] ,[], [], [], []
+        e_score, tr_score, tr_bpnn, e_bpnn, e_psnr,e_ssim = [], [] ,[], [], [], []
+        t_score, t_bpnn,t_psnr,t_ssim = [],[],[],[]
         #start = time.time()
-
+        best_epoch_tracking = 1000
         for epoch in range(args.num_epochs):
             model.train()
             epoch_losses = AverageMeter()
@@ -219,8 +224,8 @@ def objective(trial):
             psnr = AverageMeter()
             ssim_list = AverageMeter()
             model.eval()
-            epoch_losses_test = AverageMeter()
-            bpnn_loss_test = AverageMeter()
+            epoch_losses_eval = AverageMeter()
+            bpnn_loss_eval = AverageMeter()
             for data in eval_dataloader:
                 inputs, labels, masks, imagename = data
                 inputs = inputs.reshape(inputs.size(0),1,256,256)
@@ -254,12 +259,12 @@ def objective(trial):
                     P_SR = torch.cat((P_SR,BVTV_SR),dim=1)
                     P_HR = torch.cat((P_HR,BVTV_SR),dim=1)
 
-                    Ltest_SR = criterion(preds, labels)
-                    Ltest_BPNN = Lbpnn(P_SR,P_HR)
+                    Leval_SR = criterion(preds, labels)
+                    Leval_BPNN = Lbpnn(P_SR,P_HR)
                     
-                    loss_test = Ltest_SR + (args.alpha[trial] * Ltest_BPNN)
-                    epoch_losses_test.update(loss_test.item())
-                    bpnn_loss_test.update(Ltest_BPNN.item())
+                    loss_eval = Leval_SR + (args.alpha[trial] * Leval_BPNN)
+                    epoch_losses_eval.update(loss_eval.item())
+                    bpnn_loss_eval.update(Leval_BPNN.item())
                     psnr.update(calc_psnr(labels,preds,masks,device).item())
                     ssim_list.update(ssim(x=labels,y=preds,data_range=1.,downsample=False,mask=masks))
                     #if os.path.exists('./save_image/epochs'+str(epoch)) == False:
@@ -269,16 +274,69 @@ def objective(trial):
                     #torchvision.utils.save_image(preds,'./save_image/epochs' + str(epoch) +'/preds'+imagename[0]+'.png')
 
 
-            print("##### Test #####")
-            print('eval loss: {:.6f}'.format(epoch_losses_test.avg))
-            print('bpnn loss: {:.6f}'.format(bpnn_loss_test.avg))
+            print("##### EVAL #####")
+            print('eval loss: {:.6f}'.format(epoch_losses_eval.avg))
+            print('bpnn loss: {:.6f}'.format(bpnn_loss_eval.avg))
             print('psnr : {:.6f}'.format(psnr.avg))
             print('ssim : {:.6f}'.format(ssim_list.avg))
+            e_score.append(epoch_losses_test.avg)
+            e_bpnn.append(bpnn_loss_test.avg)
+            e_psnr.append(psnr.avg)
+            e_ssim.append(ssim_list.avg)
+            
+            epoch_losses_test = AverageMeter()
+            bpnn_loss_test = AverageMeter()
+            for i,data in enumerate(test_dataloader):
+                inputs, labels, masks, imagename = data
+                inputs = inputs.reshape(inputs.size(0),1,256,256)
+                labels = labels.reshape(labels.size(0),1,512,512)
+                masks = masks.reshape(masks.size(0),1,512,512)
+                #inputs, labels, masks = inputs.float(), labels.float(), masks.float()
+
+                inputs = inputs.to(device)
+                labels = labels.to(device)
+                masks = masks.to(device)
+                with torch.no_grad():
+                    preds = model(inputs).clamp(0.0,1.0)
+
+                    gaussian_blur = transforms.GaussianBlur((3,3),3)
+                    labels_bin = labels.clone().detach()
+                    labels_bin = gaussian_blur(labels_bin)
+                    preds_bin = preds.clone().cpu().detach().numpy()
+                    labels_bin = labels_bin.cpu().numpy()
+                    #t1, t2 = threshold_otsu(preds),threshold_otsu(labels)
+                    preds_bin, labels_bin = preds_bin>0.2, labels_bin>0.2
+                    labels_bin = labels_bin.astype("float32")
+                    preds_bin = preds_bin.astype("float32")
+                    preds_bin = torch.from_numpy(preds_bin).to(device)
+                    labels_bin = torch.from_numpy(labels_bin).to(device)
+                    P_SR = model_bpnn(masks,preds_bin)
+                    P_HR = model_bpnn(masks,labels_bin)
+                    BVTV_SR = bvtv_loss(preds_bin,masks)
+                    print("bvtv on SR:",BVTV_SR)
+                    BVTV_HR = bvtv_loss(labels_bin,masks)
+                    print("bvtv on HR:",BVTV_HR)
+                    P_SR = torch.cat((P_SR,BVTV_SR),dim=1)
+                    P_HR = torch.cat((P_HR,BVTV_SR),dim=1)
+
+                    Ltest_SR = criterion(preds, labels)
+                    Ltest_BPNN = Lbpnn(P_SR,P_HR)
+                    loss_test = Ltest_SR + (args.alpha[trial] * Ltest_BPNN)
+                    if best_epoch_tracking > loss_test.item():
+                        best_epoch_tracking = loss_test.item();
+                        if i%100:
+                            torchvision.utils.save_image(labels_bin, './save_image/alpha_'+str(args.alpha[trial]) + 'labels_bin_'+imagename[0]+'.png')
+                            torchvision.utils.save_image(labels,'./save_image/alpha_'+str(args.alpha[trial])+'labels_'+imagename[0]+'.png')
+                            torchvision.utils.save_image(preds_bin,'./save_image/alpha_'+str(args.alpha[trial])+'preds_bin_'+imagename[0]+'.png')
+
+                    epoch_losses_test.update(loss_test.item())
+                    bpnn_loss_est.update(Ltest_BPNN.item())
+                    psnr_test.update(calc_psnr(labels,preds,masks,device).item())
+                    ssim_test.update(ssim(x=labels,y=preds,data_range=1.,downsample=False,mask=masks))
             t_score.append(epoch_losses_test.avg)
             t_bpnn.append(bpnn_loss_test.avg)
             t_psnr.append(psnr.avg)
             t_ssim.append(ssim_list.avg)
-
 
           #  if epoch_losses_test.avg < best_loss:
           #      best_epoch = epoch
@@ -307,20 +365,26 @@ def objective(trial):
      #                "train_psnr": cross_psnr_train/args.k_fold
      #               }
     training_info = {"loss_train": tr_score,
-                     "loss_val": t_score,
+                     "loss_test": t_score,
                      "bpnn_train" : tr_bpnn,
-                     "bpnn_val": t_bpnn,
-                     "psnr": t_psnr,
-                     "ssim": t_ssim,
+                     "bpnn_test": t_bpnn,
+                     "psnr_test": t_psnr,
+                     "ssim_test": t_ssim,
                      "train_ssim": tr_ssim,
                      "train_psnr": tr_psnr,
+                     "eval_psnr": e_psnr,
+                     "eval_ssim": e_ssim,
+                     "bpnn_val": e_bpnn,
+                     "loss_val": e_score,
                      "alpha": args.alpha[trial]
                     }
     print(" ------------ CROSS RESULTS -------------")
-    print(training_info["loss_train"])
-    print(training_info['loss_val'])
-    print(training_info["bpnn_train"])
-    print(training_info["alpha"])
+    print("loss train:",training_info["loss_train"])
+    print("loss val:",training_info['loss_val'])
+    print("loss test:",training_info['loss_test'])
+    print("bpnn train:",training_info["bpnn_train"])
+    print("bpnn_val:", training_info["bpnn_val"])
+    print("alpha:",training_info["alpha"])
     i=1
     while os.path.exists(os.path.join(args.outputs_dir,"losses_info"+str(i)+".pkl")) == True:
         i=i+1
@@ -328,7 +392,7 @@ def objective(trial):
         pickle.dump(training_info,f)
     #print('best epoch: {}, loss: {:.6f}'.format(best_epoch, best_loss))
     #return np.min(np.array(cross_bpnn)/args.k_fold), np.max(np.array(cross_psnr)/args.k_fold), args.alpha[trial], np.max(np.array(cross_ssim)/args.k_fold)
-    return np.min(np.array(t_bpnn)),np.max(np.array(t_psnr)),args.alpha[trial],np.max(np.array(t_ssim)),
+    return np.min(np.array(e_bpnn)),np.max(np.array(e_psnr)),args.alpha[trial],np.max(np.array(e_ssim)),
     #torch.save(best_weights, os.path.join(args.outputs_dir, 'best.pth'))
 
 study= {"bpnn" :[], "psnr": [], "alpha": [],"ssim":[]}
@@ -339,5 +403,5 @@ for n_trial in range(8):
     study["alpha"].append(al)
     study["ssim"].append(ss)
 
-with open("./FSRCNN_9p2.pkl","wb") as f:
+with open("./FSRCNN_7p.pkl","wb") as f:
     pickle.dump(study,f)
