@@ -61,14 +61,7 @@ def preprocess(img, device):
 
 
         
-def calc_psnr(img1,img2,directory,name,device):
-    if isinstance(name,list) or isinstance(name,tuple):
-        name = name[0].replace("png","bmp")
-    else:
-        name = name.replace("png","bmp")
-    mask = io.imread(os.path.join(directory,name))
-    mask = mask / mask.max()
-    mask = torch.reshape(torch.tensor(mask),(1,1,512,512)).to(device)
+def calc_psnr(img1,img2,mask,device):
     MSE = torch.sum((torch.mul((img1 - img2),mask))**2) / torch.sum(mask)
     return 10. * torch.log10(1. / MSE)
 
