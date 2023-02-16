@@ -30,6 +30,13 @@ from PIL import Image
 
 NB_DATA = 7100
 
+def bvtv_loss(tensor_to_count,tensor_mask):
+    ones = (tensor_to_count == 1).sum(dim=2)
+    BV = ones.sum(dim=2)
+    ones = (tensor_mask == 1).sum(dim=2)
+    TV = ones.sum(dim=2)
+    BVTV = BV/TV
+    return BVTV
 
 def objective(trial):
     parser = argparse.ArgumentParser()
@@ -173,7 +180,12 @@ def objective(trial):
                     #torchvision.utils.save_image(preds_bin,'./save_image/preds_bin_'+imagename[0]+'.png')
                     P_SR = model_bpnn(masks,preds_bin)
                     P_HR = model_bpnn(masks,labels_bin)
-                    
+                    BVTV_SR = bvtv_loss(preds_bin,masks)
+                    print("bvtv on SR:",BVTV_SR)
+                    BVTV_HR = bvtv_loss(labels_bin,masks)
+                    print("bvtv on HR:",BVTV_HR)
+                    P_SR = torch.cat((P_SR,BVTV_SR),dim=1)
+                    P_HR = torch.cat((P_HR,BVTV_SR),dim=1)
                     L_SR = criterion(preds, labels)
                     L_BPNN = Lbpnn(P_SR,P_HR)
                     loss = L_SR + (args.alpha[trial] * L_BPNN)
@@ -235,6 +247,12 @@ def objective(trial):
                     labels_bin = torch.from_numpy(labels_bin).to(device)
                     P_SR = model_bpnn(masks,preds_bin)
                     P_HR = model_bpnn(masks,labels_bin)
+                    BVTV_SR = bvtv_loss(preds_bin,masks)
+                    print("bvtv on SR:",BVTV_SR)
+                    BVTV_HR = bvtv_loss(labels_bin,masks)
+                    print("bvtv on HR:",BVTV_HR)
+                    P_SR = torch.cat((P_SR,BVTV_SR),dim=1)
+                    P_HR = torch.cat((P_HR,BVTV_SR),dim=1)
 
                     Ltest_SR = criterion(preds, labels)
                     Ltest_BPNN = Lbpnn(P_SR,P_HR)
