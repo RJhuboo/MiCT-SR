@@ -4,6 +4,7 @@ import os
 import copy
 import pickle
 import torch
+import torch.nn.functional as F
 from torch import nn
 from torch.nn import L1Loss, MSELoss
 import torch.optim as optim
@@ -20,7 +21,7 @@ import numpy as np
 from sklearn.model_selection import train_test_split
 from sklearn.model_selection import KFold
 from models import FSRCNN, BPNN
-from datasets import TrainDataset
+from datasets import TrainDataset, TestDataset
 from utils import AverageMeter, calc_psnr
 from ssim import ssim
 import time
@@ -44,8 +45,8 @@ def objective(trial):
     parser.add_argument('--LR_dir', type=str,default = "./data/LR/Train_trab")
     parser.add_argument('--mask_dir',type=str,default = "./data/HR/Train_trab_mask")
     parser.add_argument('--outputs-dir', type=str, default = "./FSRCNN_search")
-    parser.add_argument('--checkpoint_bpnn', type= str, default = "./checkpoints_bpnn/BPNN_checkpoint_7p.pth")
-    parser.add_argument('--alpha', default = [0,10**(-3),10**(-1),10**(-4),5*10**(-4),5*10**(-3),4*10**(-2),5*10**(-5)])
+    parser.add_argument('--checkpoint_bpnn', type= str, default = "./checkpoints_bpnn/BPNN_checkpoint_7p2.pth")
+    parser.add_argument('--alpha', default = [0,10**(-9),10**(-6),10**(-7),5*10**(-6),5*10**(-7),10**(-8),5*10**(-8),5*10**(-3)])
     parser.add_argument('--Loss_bpnn', default = MSELoss)
     parser.add_argument('--weights-file', type=str)
     parser.add_argument('--scale', type=int, default=2)
@@ -166,6 +167,8 @@ def objective(trial):
                     #torchvision.utils.save_image(preds,'preds.png')
                     gaussian_blur = transforms.GaussianBlur((3,3),3)
                     labels_bin = labels.clone().detach()
+                    masks_bin = masks.clone().detach()
+                    masks_bin = F.interpolate(masks_bin, size=64)
                     labels_bin = gaussian_blur(labels_bin)
                     preds_bin = preds.clone().cpu().detach().numpy()
                     labels_bin = labels_bin.cpu().numpy()
@@ -183,14 +186,14 @@ def objective(trial):
                     #torchvision.utils.save_image(labels_bin, './save_image/labels_bin_'+imagename[0]+'.png')
                     #torchvision.utils.save_image(labels,'./save_image/labels_'+imagename[0]+'.png')
                     #torchvision.utils.save_image(preds_bin,'./save_image/preds_bin_'+imagename[0]+'.png')
-                    P_SR = model_bpnn(masks,preds_bin)
-                    P_HR = model_bpnn(masks,labels_bin)
+                    P_SR = model_bpnn(masks_bin,preds_bin)
+                    P_HR = model_bpnn(masks_bin,labels_bin)
                     BVTV_SR = bvtv_loss(preds_bin,masks)
-                    print("bvtv on SR:",BVTV_SR)
+                    #print("bvtv on SR:",BVTV_SR)
                     BVTV_HR = bvtv_loss(labels_bin,masks)
-                    print("bvtv on HR:",BVTV_HR)
+                    #print("bvtv on HR:",BVTV_HR)
                     P_SR = torch.cat((P_SR,BVTV_SR),dim=1)
-                    P_HR = torch.cat((P_HR,BVTV_SR),dim=1)
+                    P_HR = torch.cat((P_HR,BVTV_HR),dim=1)
                     L_SR = criterion(preds, labels)
                     L_BPNN = Lbpnn(P_SR,P_HR)
                     loss = L_SR + (args.alpha[trial] * L_BPNN)
@@ -213,9 +216,9 @@ def objective(trial):
             tr_ssim.append(ssim_train.avg)
             tr_score.append(epoch_losses.avg)
             tr_bpnn.append(bpnn_loss.avg)
-            print(torch.max(preds),torch.min(preds))
 
             print("##### Train #####")
+            print("Alpha =", args.alpha[trial])
             print("BPNN loss: {:.6f}".format(bpnn_loss.avg))
             print("train loss : {:.6f}".format(epoch_losses.avg))
             #torch.save(model.state_dict(), os.path.join(args.outputs_dir, 'epoch_{}.pth'.format(epoch)))
@@ -244,20 +247,22 @@ def objective(trial):
                     labels_bin = gaussian_blur(labels_bin)
                     preds_bin = preds.clone().cpu().detach().numpy()
                     labels_bin = labels_bin.cpu().numpy()
+                    masks_bin = masks.clone().detach()
+                    masks_bin = F.interpolate(masks_bin, size=64)
                     #t1, t2 = threshold_otsu(preds),threshold_otsu(labels)
                     preds_bin, labels_bin = preds_bin>0.2, labels_bin>0.2
                     labels_bin = labels_bin.astype("float32")
                     preds_bin = preds_bin.astype("float32")
                     preds_bin = torch.from_numpy(preds_bin).to(device)
                     labels_bin = torch.from_numpy(labels_bin).to(device)
-                    P_SR = model_bpnn(masks,preds_bin)
-                    P_HR = model_bpnn(masks,labels_bin)
+                    P_SR = model_bpnn(masks_bin,preds_bin)
+                    P_HR = model_bpnn(masks_bin,labels_bin)
                     BVTV_SR = bvtv_loss(preds_bin,masks)
-                    print("bvtv on SR:",BVTV_SR)
+                    #print("bvtv on SR:",BVTV_SR)
                     BVTV_HR = bvtv_loss(labels_bin,masks)
-                    print("bvtv on HR:",BVTV_HR)
+                    #print("bvtv on HR:",BVTV_HR)
                     P_SR = torch.cat((P_SR,BVTV_SR),dim=1)
-                    P_HR = torch.cat((P_HR,BVTV_SR),dim=1)
+                    P_HR = torch.cat((P_HR,BVTV_HR),dim=1)
 
                     Leval_SR = criterion(preds, labels)
                     Leval_BPNN = Lbpnn(P_SR,P_HR)
@@ -266,7 +271,7 @@ def objective(trial):
                     epoch_losses_eval.update(loss_eval.item())
                     bpnn_loss_eval.update(Leval_BPNN.item())
                     psnr.update(calc_psnr(labels,preds,masks,device).item())
-                    ssim_list.update(ssim(x=labels,y=preds,data_range=1.,downsample=False,mask=masks))
+                    ssim_list.update(ssim(x=labels,y=preds,data_range=1.,downsample=False,mask=masks,device='cpu'))
                     #if os.path.exists('./save_image/epochs'+str(epoch)) == False:
                     #    os.makedirs('./save_image/epochs'+str(epoch))
                     #torchvision.utils.save_image(labels, './save_image/epochs' + str(epoch) + '/label'+imagename[0]+'.png')
@@ -279,11 +284,13 @@ def objective(trial):
             print('bpnn loss: {:.6f}'.format(bpnn_loss_eval.avg))
             print('psnr : {:.6f}'.format(psnr.avg))
             print('ssim : {:.6f}'.format(ssim_list.avg))
-            e_score.append(epoch_losses_test.avg)
-            e_bpnn.append(bpnn_loss_test.avg)
+            e_score.append(epoch_losses_eval.avg)
+            e_bpnn.append(bpnn_loss_eval.avg)
             e_psnr.append(psnr.avg)
             e_ssim.append(ssim_list.avg)
             
+            psnr_test = AverageMeter()
+            ssim_test = AverageMeter()
             epoch_losses_test = AverageMeter()
             bpnn_loss_test = AverageMeter()
             for i,data in enumerate(test_dataloader):
@@ -304,20 +311,22 @@ def objective(trial):
                     labels_bin = gaussian_blur(labels_bin)
                     preds_bin = preds.clone().cpu().detach().numpy()
                     labels_bin = labels_bin.cpu().numpy()
+                    masks_bin = masks.clone().detach()
+                    masks_bin = F.interpolate(masks_bin, size=64)
                     #t1, t2 = threshold_otsu(preds),threshold_otsu(labels)
                     preds_bin, labels_bin = preds_bin>0.2, labels_bin>0.2
                     labels_bin = labels_bin.astype("float32")
                     preds_bin = preds_bin.astype("float32")
                     preds_bin = torch.from_numpy(preds_bin).to(device)
                     labels_bin = torch.from_numpy(labels_bin).to(device)
-                    P_SR = model_bpnn(masks,preds_bin)
-                    P_HR = model_bpnn(masks,labels_bin)
+                    P_SR = model_bpnn(masks_bin,preds_bin)
+                    P_HR = model_bpnn(masks_bin,labels_bin)
                     BVTV_SR = bvtv_loss(preds_bin,masks)
-                    print("bvtv on SR:",BVTV_SR)
+                    #print("bvtv on SR:",BVTV_SR)
                     BVTV_HR = bvtv_loss(labels_bin,masks)
-                    print("bvtv on HR:",BVTV_HR)
+                    #print("bvtv on HR:",BVTV_HR)
                     P_SR = torch.cat((P_SR,BVTV_SR),dim=1)
-                    P_HR = torch.cat((P_HR,BVTV_SR),dim=1)
+                    P_HR = torch.cat((P_HR,BVTV_HR),dim=1)
 
                     Ltest_SR = criterion(preds, labels)
                     Ltest_BPNN = Lbpnn(P_SR,P_HR)
@@ -325,18 +334,19 @@ def objective(trial):
                     if best_epoch_tracking > loss_test.item():
                         best_epoch_tracking = loss_test.item();
                         if i%100:
-                            torchvision.utils.save_image(labels_bin, './save_image/alpha_'+str(args.alpha[trial]) + 'labels_bin_'+imagename[0]+'.png')
-                            torchvision.utils.save_image(labels,'./save_image/alpha_'+str(args.alpha[trial])+'labels_'+imagename[0]+'.png')
-                            torchvision.utils.save_image(preds_bin,'./save_image/alpha_'+str(args.alpha[trial])+'preds_bin_'+imagename[0]+'.png')
+                            torchvision.utils.save_image(labels_bin, './save_image/alpha_'+str(args.alpha[trial]) + '/labels_bin_'+imagename[0])
+                            torchvision.utils.save_image(labels,'./save_image/alpha_'+str(args.alpha[trial])+'/labels_'+imagename[0])
+                            torchvision.utils.save_image(preds_bin,'./save_image/alpha_'+str(args.alpha[trial])+'/preds_bin_'+imagename[0])
+                            torchvision.utils.save_image(preds,'./save_image/alpha_'+str(args.alpha[trial])+'/preds'+imagename[0])
 
                     epoch_losses_test.update(loss_test.item())
-                    bpnn_loss_est.update(Ltest_BPNN.item())
+                    bpnn_loss_test.update(Ltest_BPNN.item())
                     psnr_test.update(calc_psnr(labels,preds,masks,device).item())
                     ssim_test.update(ssim(x=labels,y=preds,data_range=1.,downsample=False,mask=masks))
             t_score.append(epoch_losses_test.avg)
             t_bpnn.append(bpnn_loss_test.avg)
-            t_psnr.append(psnr.avg)
-            t_ssim.append(ssim_list.avg)
+            t_psnr.append(psnr_test.avg)
+            t_ssim.append(ssim_test.avg)
 
           #  if epoch_losses_test.avg < best_loss:
           #      best_epoch = epoch
