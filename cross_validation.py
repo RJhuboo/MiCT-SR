@@ -52,7 +52,7 @@ def objective(trial):
     parser.add_argument('--scale', type=int, default=2)
     parser.add_argument('--lr', type=float, default=1e-3)
     parser.add_argument('--batch-size', type=int, default=16)
-    parser.add_argument('--num-epochs', type=int, default=90)
+    parser.add_argument('--num-epochs', type=int, default=100)
     parser.add_argument('--num-workers', type=int, default=24)
     parser.add_argument('--seed', type=int, default=123)
     parser.add_argument('--nof', type= int, default = 64)
@@ -64,7 +64,7 @@ def objective(trial):
     parser.add_argument('--k_fold', type=int, default = 1)
     args = parser.parse_args()
 
-    args.outputs_dir = os.path.join(args.outputs_dir, 'BPNN_7p_x{}'.format(args.scale))
+    args.outputs_dir = os.path.join(args.outputs_dir, 'BPNN_7pL1_x{}'.format(args.scale))
     
     if os.path.exists(args.outputs_dir) == False:
         os.makedirs(args.outputs_dir)
@@ -145,6 +145,12 @@ def objective(trial):
         t_score, t_bpnn,t_psnr,t_ssim = [],[],[],[]
         #start = time.time()
         best_epoch_tracking = 1000
+        data_param_SR = []
+        data_param_HR = []
+        data_param_SR_test = []
+        data_param_HR_test = []
+        names_index = []
+        names_index_test = []
         for epoch in range(args.num_epochs):
             model.train()
             epoch_losses = AverageMeter()
@@ -194,6 +200,11 @@ def objective(trial):
                     #print("bvtv on HR:",BVTV_HR)
                     P_SR = torch.cat((P_SR,BVTV_SR),dim=1)
                     P_HR = torch.cat((P_HR,BVTV_HR),dim=1)
+                    
+                    if epoch == args.num_epochs - 1:
+                        data_param_SR.append(P_SR.detach().numpy())
+                        data_param_HR.append(P_HR.detach().numpy())
+                        names_index.append(imagename)
                     L_SR = criterion(preds, labels)
                     L_BPNN = Lbpnn(P_SR,P_HR)
                     loss = L_SR + (args.alpha[trial] * L_BPNN)
@@ -216,7 +227,9 @@ def objective(trial):
             tr_ssim.append(ssim_train.avg)
             tr_score.append(epoch_losses.avg)
             tr_bpnn.append(bpnn_loss.avg)
-
+            if epoch==args.num_epochs-1:
+                df_SR = pd.DataFrame(data_param_SR.reshape(6000,8),index=np.array(names_index).reshape(6000,1))
+                df_HR = pd.DataFrame(data_param_HR.reshape(6000,8),index=np.array(names_index).reshape(6000,1))
             print("##### Train #####")
             print("Alpha =", args.alpha[trial])
             print("BPNN loss: {:.6f}".format(bpnn_loss.avg))
@@ -263,7 +276,7 @@ def objective(trial):
                     #print("bvtv on HR:",BVTV_HR)
                     P_SR = torch.cat((P_SR,BVTV_SR),dim=1)
                     P_HR = torch.cat((P_HR,BVTV_HR),dim=1)
-
+                    
                     Leval_SR = criterion(preds, labels)
                     Leval_BPNN = Lbpnn(P_SR,P_HR)
                     
@@ -327,7 +340,10 @@ def objective(trial):
                     #print("bvtv on HR:",BVTV_HR)
                     P_SR = torch.cat((P_SR,BVTV_SR),dim=1)
                     P_HR = torch.cat((P_HR,BVTV_HR),dim=1)
-
+                    if epoch==args.num_epochs-1:
+                        data_param_HR_test.append(P_HR.detach().numpy())
+                        data_param_SR_test.append(P_SR.detach().numpy())
+                        names_index_test.append(imagename)
                     Ltest_SR = criterion(preds, labels)
                     Ltest_BPNN = Lbpnn(P_SR,P_HR)
                     loss_test = Ltest_SR + (args.alpha[trial] * Ltest_BPNN)
@@ -347,6 +363,8 @@ def objective(trial):
             t_bpnn.append(bpnn_loss_test.avg)
             t_psnr.append(psnr_test.avg)
             t_ssim.append(ssim_test.avg)
+            df_param_SR_test = pd.DataFrame(data_param_SR_test.reshape(1100,8),index=np.array(names_index_test).reshape(1100,1))
+            df_param_HR_test = pd.DataFrame(data_param_HR_test.reshape(1100,8),index=np.array(names_index_test).reshape(1100,1))
 
           #  if epoch_losses_test.avg < best_loss:
           #      best_epoch = epoch
@@ -386,6 +404,10 @@ def objective(trial):
                      "eval_ssim": e_ssim,
                      "bpnn_val": e_bpnn,
                      "loss_val": e_score,
+                     "param_SR": df_SR,
+                     "param_HR": df_HR,
+                     "param_SR_test": df_param_SR_test,
+                     "param_HR_test": df_param_HR_test,
                      "alpha": args.alpha[trial]
                     }
     print(" ------------ CROSS RESULTS -------------")
@@ -406,12 +428,12 @@ def objective(trial):
     #torch.save(best_weights, os.path.join(args.outputs_dir, 'best.pth'))
 
 study= {"bpnn" :[], "psnr": [], "alpha": [],"ssim":[]}
-for n_trial in range(8):
+for n_trial in range(3):
     bp,ps,al,ss = objective(n_trial)
     study["bpnn"].append(bp)
     study["psnr"].append(ps)
     study["alpha"].append(al)
     study["ssim"].append(ss)
 
-with open("./FSRCNN_7p.pkl","wb") as f:
+with open("./FSRCNN_7pL1.pkl","wb") as f:
     pickle.dump(study,f)
