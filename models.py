@@ -2,9 +2,9 @@ import torch
 import math
 from torch import nn
 import torch.nn.functional as F
-
+import torchvision.transforms as transforms 
 class FSRCNN(nn.Module):
-    def __init__(self, scale_factor, num_channels=1, d=56, s=12, m=4):
+    def __init__(self, scale_factor, num_channels=1, d=56, s=12, m=4,device='cpu'):
         super(FSRCNN, self).__init__()
         self.first_part = nn.Sequential(
             nn.Conv2d(num_channels, d, kernel_size=5, padding=5//2),
@@ -18,6 +18,8 @@ class FSRCNN(nn.Module):
         self.last_part = nn.ConvTranspose2d(d, num_channels, kernel_size=9, stride=scale_factor, padding=9//2,
                                             output_padding=scale_factor-1)
 
+        
+        self.threshold = torch.Tensor([0.2]).to(device)
         self._initialize_weights()
 
     def _initialize_weights(self):
