@@ -3,6 +3,16 @@ import math
 from torch import nn
 import torch.nn.functional as F
 import torchvision.transforms as transforms 
+
+class ThrSigmoid(nn.Module):
+    def __init__(self, k,t):
+        super().__init__()
+        self.k = k
+        self.t = t
+    def forward(self, x):
+        ex = (1/(1+torch.exp(-self.k*(x-self.t))))
+        return ex
+
 class FSRCNN(nn.Module):
     def __init__(self, scale_factor, num_channels=1, d=56, s=12, m=4,device='cpu'):
         super(FSRCNN, self).__init__()
@@ -18,10 +28,8 @@ class FSRCNN(nn.Module):
         self.last_part = nn.ConvTranspose2d(d, num_channels, kernel_size=9, stride=scale_factor, padding=9//2,
                                             output_padding=scale_factor-1)
 
-        
-        self.threshold = torch.Tensor([0.2]).to(device)
         self._initialize_weights()
-
+        self.sig = ThrSigmoid(k=100,t=0.2) 
     def _initialize_weights(self):
         for m in self.first_part:
             if isinstance(m, nn.Conv2d):
@@ -38,7 +46,8 @@ class FSRCNN(nn.Module):
         x = self.first_part(x)
         x = self.mid_part(x)
         x = self.last_part(x)
-        return x
+        #_bin = self.sig(x)
+        return x#,x_bin
 
     
 ## Neural Network for regression ##

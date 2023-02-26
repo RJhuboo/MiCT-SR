@@ -46,15 +46,11 @@ def objective(trial):
     parser.add_argument('--mask_dir',type=str,default = "./data/HR/Train_trab_mask")
     parser.add_argument('--outputs-dir', type=str, default = "./FSRCNN_search")
     parser.add_argument('--checkpoint_bpnn', type= str, default = "./checkpoints_bpnn/BPNN_checkpoint_7p2.pth")
-<<<<<<< HEAD
-    parser.add_argument('--alpha', default = [0,10**(-9),10**(-6),10**(-7),5*10**(-6),5*10**(-7),10**(-8),5*10**(-8),5*10**(-3)])
-=======
-    parser.add_argument('--alpha', default = [10])#[0,10**(-6),10**(-5),10**(-4),10**(-3),10**(-2),5*10**(-4),5*10**(-3),10**(-1)])
->>>>>>> fb6ffab (NO GRADIENT !)
+    parser.add_argument('--alpha', default = [0])#[0,10**(-6),10**(-5),10**(-4),10**(-3),10**(-2),5*10**(-4),5*10**(-3),10**(-1)])
     parser.add_argument('--Loss_bpnn', default = L1Loss)
     parser.add_argument('--weights-file', type=str)
     parser.add_argument('--scale', type=int, default=2)
-    parser.add_argument('--lr', type=float, default=1e-2)#-2
+    parser.add_argument('--lr', type=float, default=1e-3)#-2
     parser.add_argument('--batch-size', type=int, default=16)
     parser.add_argument('--num-epochs', type=int, default=100)
     parser.add_argument('--num-workers', type=int, default=24)
@@ -68,12 +64,7 @@ def objective(trial):
     parser.add_argument('--k_fold', type=int, default = 1)
     args = parser.parse_args()
 
-<<<<<<< HEAD
-    args.outputs_dir = os.path.join(args.outputs_dir, 'BPNN_7pL1_x{}'.format(args.scale))
-=======
-    args.outputs_dir = os.path.join(args.outputs_dir, 'BPNN_7p9alpha_x{}'.format(args.scale))
->>>>>>> fb6ffab (NO GRADIENT !)
-    
+    args.outputs_dir = os.path.join(args.outputs_dir, 'BPNN_7p9alpha_x{}'.format(args.scale))    
     if os.path.exists(args.outputs_dir) == False:
         os.makedirs(args.outputs_dir)
     if os.path.exists("save_image/alpha_"+str(args.alpha[trial])) == False:
@@ -180,7 +171,9 @@ def objective(trial):
                     #inputs, labels, masks = inputs.float(), labels.float(), masks.float()
                     #inputs, labels, masks = inputs.to(device), labels.to(device), masks.to(device)
                     inputs, labels, masks = inputs.to(device), labels.to(device), masks.to(device)
-                    #torchvision.utils.save_image(inputs,'inputs.png')
+                    print("max labels",torch.max(labels))
+                    print(" min labels", torch.min(labels))
+                   #torchvision.utils.save_image(inputs,'inputs.png')
                     preds = model(inputs)
                     #torchvision.utils.save_image(preds,'preds.png')
                     gaussian_blur = transforms.GaussianBlur((3,3),3)
@@ -206,30 +199,32 @@ def objective(trial):
                     #torchvision.utils.save_image(labels,'./save_image/labels_'+imagename[0]+'.png')
                     #torchvision.utils.save_image(preds_bin,'./save_image/preds_bin_'+imagename[0]+'.pngn')
                     #preds_bin = (preds>0.5).type(torch.float32)
-                    P_SR = model_bpnn(masks_bin,preds)
-                    P_HR = model_bpnn(masks_bin,labels_bin)
-                    BVTV_SR = bvtv_loss(preds,masks)
+                    #P_SR = model_bpnn(masks_bin,preds_bin)
+                    #P_HR = model_bpnn(masks_bin,labels_bin)
+                    #BVTV_SR = bvtv_loss(preds_bin,masks)
                     #print("bvtv on SR:",BVTV_SR)
-                    BVTV_HR = bvtv_loss(labels,masks)
+                    #BVTV_HR = bvtv_loss(labels,masks)
                     #print("bvtv on HR:",BVTV_HR)
-                    P_SR = torch.cat((P_SR,BVTV_SR),dim=1)
-                    P_HR = torch.cat((P_HR,BVTV_HR),dim=1)
+                    #P_SR = torch.cat((P_SR,BVTV_SR),dim=1)
+                    #P_HR = torch.cat((P_HR,BVTV_HR),dim=1)
                     
                     if epoch == args.num_epochs - 1:
                         data_param_SR.append(P_SR.detach().numpy())
                         data_param_HR.append(P_HR.detach().numpy())
                         names_index.append(imagename)
                     L_SR = criterion(preds, labels)
-                    L_BPNN = Lbpnn(P_SR,P_HR)
-                    loss = L_BPNN#L_SR + (args.alpha[trial] * L_BPNN)
+                    #L_BPNN = Lbpnn(P_SR,P_HR)
+                    print("before:",preds)
+                    #print("prediction:", preds_bin)
+                    loss = L_SR #+ (args.alpha[trial] * L_BPNN)
                     
                     epoch_losses.update(loss.item())
-                    bpnn_loss.update(L_BPNN.item())
+                    #bpnn_loss.update(L_BPNN.item())
                     optimizer.zero_grad()
                     loss.mean().backward()
-                    for name, param in model.named_parameters():
-                        if param.requires_grad:
-                            print(name, param.grad) 
+                    #for name, param in model.named_parameters():
+                    #    if param.requires_grad:
+                    #        print(name, param.grad) 
                     #L_SR.mean().backward()
                     optimizer.step()
 
@@ -452,9 +447,5 @@ for n_trial in range(1):
     study["alpha"].append(al)
     study["ssim"].append(ss)
 
-<<<<<<< HEAD
-with open("./FSRCNN_7pL1.pkl","wb") as f:
-=======
-with open("./FSRCNN_7p9alpha.pkl","wb") as f:
->>>>>>> fb6ffab (NO GRADIENT !)
+with open("./FSRCNN_7puntruc.pkl","wb") as f:
     pickle.dump(study,f)
