@@ -29,7 +29,7 @@ class FSRCNN(nn.Module):
                                             output_padding=scale_factor-1)
 
         self._initialize_weights()
-        self.sig = ThrSigmoid(k=100,t=0.2) 
+        self.sig = ThrSigmoid(k=400,t=0.2) 
     def _initialize_weights(self):
         for m in self.first_part:
             if isinstance(m, nn.Conv2d):
@@ -46,8 +46,8 @@ class FSRCNN(nn.Module):
         x = self.first_part(x)
         x = self.mid_part(x)
         x = self.last_part(x)
-        #_bin = self.sig(x)
-        return x#,x_bin
+        x_bin = self.sig(x)
+        return x,x_bin
 
     
 ## Neural Network for regression ##
