@@ -20,10 +20,10 @@ class FSRCNN(nn.Module):
             nn.Conv2d(num_channels, d, kernel_size=5, padding=5//2),
             nn.PReLU(d)
         )
-        self.mid_part = [nn.Conv2d(d, s, kernel_size=1), nn.PReLU(s)]
+        self.mid_part = [nn.Conv2d(d, s, kernel_size=1), nn.GELU()] #PReLU(s)
         for _ in range(m):
-            self.mid_part.extend([nn.Conv2d(s, s, kernel_size=3, padding=3//2), nn.PReLU(s)])
-        self.mid_part.extend([nn.Conv2d(s, d, kernel_size=1), nn.PReLU(d)])
+            self.mid_part.extend([nn.Conv2d(s, s, kernel_size=3, padding=3//2), nn.GELU()]) #PReLU(s)
+        self.mid_part.extend([nn.Conv2d(s, d, kernel_size=1), nn.GELU()]) #PReLU(d)
         self.mid_part = nn.Sequential(*self.mid_part)
         self.last_part = nn.ConvTranspose2d(d, num_channels, kernel_size=9, stride=scale_factor, padding=9//2,
                                             output_padding=scale_factor-1)
@@ -46,7 +46,7 @@ class FSRCNN(nn.Module):
         x = self.first_part(x)
         x = self.mid_part(x)
         x = self.last_part(x)
-        x_bin = self.sig(x)
+        x_bin = self.sig(x.clamp(0.0,1.0))
         return x,x_bin
 
     

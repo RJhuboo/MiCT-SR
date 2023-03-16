@@ -20,6 +20,7 @@ import joblib
 import numpy as np
 from sklearn.model_selection import train_test_split
 from sklearn.model_selection import KFold
+from sklearn.utils import shuffle
 from models import FSRCNN, BPNN
 from datasets import TrainDataset, TestDataset
 from utils import AverageMeter, calc_psnr
@@ -32,7 +33,6 @@ from PIL import Image
 import math
 
 NB_DATA = 7100
-
 def bvtv_loss(tensor_to_count,tensor_mask):
     tensor_to_count = (tensor_to_count>0.2).type(torch.float32)*1.
     ones = (tensor_to_count == 1).sum(dim=2)
@@ -48,14 +48,14 @@ def objective(trial):
     parser.add_argument('--LR_dir', type=str,default = "./data/LR/Train_trab")
     parser.add_argument('--mask_dir',type=str,default = "./data/HR/Train_trab_mask")
     parser.add_argument('--outputs-dir', type=str, default = "./FSRCNN_search")
-    parser.add_argument('--checkpoint_bpnn', type= str, default = "./checkpoints_bpnn/BPNN_checkpoint_7p2.pth")
-    parser.add_argument('--alpha', default = [0,10**(-6),10**(-5),10**(-4),10**(-3),10**(-2),5*10**(-4),5*10**(-3),10**(-1)])
+    parser.add_argument('--checkpoint_bpnn', type= str, default = "./checkpoints_bpnn/BPNN_checkpoint_lrhr.pth")
+    parser.add_argument('--alpha', type = list, default = [0,1e-6,1e-5])
     parser.add_argument('--Loss_bpnn', default = MSELoss)
     parser.add_argument('--weights-file', type=str)
     parser.add_argument('--scale', type=int, default=2)
     parser.add_argument('--lr', type=float, default=1e-3)#-2
     parser.add_argument('--batch-size', type=int, default=16)
-    parser.add_argument('--num-epochs', type=int, default=100)
+    parser.add_argument('--num-epochs', type=int, default=70)
     parser.add_argument('--num-workers', type=int, default=24)
     parser.add_argument('--seed', type=int, default=123)
     parser.add_argument('--nof', type= int, default = 64)
@@ -65,9 +65,10 @@ def objective(trial):
     parser.add_argument('--gpu_ids', type=list, default = [0, 1, 2])
     parser.add_argument('--NB_LABEL', type=int, default = 7)
     parser.add_argument('--k_fold', type=int, default = 1)
+    parser.add_argument('--name', type=str, default = "BPNN_7lrhr_0_6_5alpha_clamp")
     args = parser.parse_args()
 
-    args.outputs_dir = os.path.join(args.outputs_dir, 'BPNN_7p_x{}'.format(args.scale))    
+    args.outputs_dir = os.path.join(args.outputs_dir, args.name)    
     if os.path.exists(args.outputs_dir) == False:
         os.makedirs(args.outputs_dir)
     if os.path.exists("save_image/alpha_"+str(args.alpha[trial])) == False:
@@ -82,8 +83,8 @@ def objective(trial):
     
     model_bpnn = BPNN(in_channel=1,features=args.nof, out_channels=args.NB_LABEL, n1= args.n1, n2=args.n2, n3=args.n3, k1=3,k2=3,k3=3).to(device)
     model_bpnn.load_state_dict(torch.load(os.path.join(args.checkpoint_bpnn)))
-    #if torch.cuda.device_count() > 1:
-    #    model_bpnn = nn.DataParallel(model_bpnn)
+    if torch.cuda.device_count() > 1:
+        model_bpnn = nn.DataParallel(model_bpnn)
     model_bpnn.to(device)
     for param in model_bpnn.parameters():
         param.requires_grad = False
@@ -94,13 +95,13 @@ def objective(trial):
     if args.k_fold >1:
         kf = KFold(n_splits = args.k_fold, shuffle=True)
     else:
-        kf = train_test_split(index,train_size=6000,test_size=1100,random_state=42)
+        kf = train_test_split(index,train_size=6000,test_size=1100,shuffle=False)
     #cross_bpnn, cross_score, cross_psnr, cross_ssim = np.zeros(args.num_epochs),np.zeros(args.num_epochs),np.zeros(args.num_epochs),np.zeros(args.num_epochs)
     #cross_bpnn_train, cross_score_train, cross_psnr_train, cross_ssim_train = np.zeros(args.num_epochs),np.zeros(args.num_epochs),np.zeros(args.num_epochs),np.zeros(args.num_epochs)
     for k in range(1):
     # for train_index, test_index in kf.split(index):
-        train_index = kf[0]
-        test_index = kf[1]
+        train_index = shuffle(kf[0])
+        test_index = shuffle(kf[1])
         print("-------  Data separation -------")
         print("train size:",len(train_index))
         print("test size:",len(test_index))
@@ -112,8 +113,8 @@ def objective(trial):
                                 {'params': model.last_part.parameters(), 'lr': args.lr * 0.1}
                                 ], lr=args.lr)
         #optimizer = optim.Adam(list(model_bpnn.parameters()) + list(model.parameters()))
-        #if torch.cuda.device_count() >1:
-        #    model = nn.DataParallel(model) 
+        if torch.cuda.device_count() >1:
+            model = nn.DataParallel(model) 
         model.to(device)
         criterion = nn.MSELoss()
         Lbpnn =  args.Loss_bpnn()
@@ -180,7 +181,6 @@ def objective(trial):
                     #preds = model(inputs)
                     preds,preds_bin = model(inputs)
                     preds = preds.clamp(0.0,1.0)
-                    preds_bin = preds_bin.detach()
                     #torchvision.utils.save_image(preds,'preds.png')
                     gaussian_blur = transforms.GaussianBlur((3,3),3)
                     labels_bin = labels.clone().detach()
@@ -212,17 +212,19 @@ def objective(trial):
                     BVTV_HR = bvtv_loss(labels,masks)
                     
                     #print("bvtv on HR:",BVTV_HR)
-                    P_SR = torch.cat((P_SR,BVTV_SR),dim=1)
-                    P_HR = torch.cat((P_HR,BVTV_HR),dim=1)
-                    
+                    P_SR = torch.cat((P_SR,BVTV_SR),dim=1).clamp(-1,1)
+                    P_HR = torch.cat((P_HR,BVTV_HR),dim=1).clamp(-1,1)
                     #if epoch == args.num_epochs - 1:
                     #    data_param_SR.append(P_SR.detach().numpy())
                     #    data_param_HR.append(P_HR.detach().numpy())
                     #    names_index.append(imagename)
                     L_SR = criterion(preds, labels)
                     L_BPNN = Lbpnn(P_SR,P_HR)
-                    print("before:",preds)
-                    print("prediction:", preds_bin)
+                    #print("\n max bin:",preds_bin)
+                    #print("min bin",torch.min(preds_bin))
+                    #print("prediction:", preds_bin)
+                    #if epoch >3:
+                       #args.alpha[trial]= 0.0001
                     loss = L_SR + (args.alpha[trial] * L_BPNN)
                     epoch_losses.update(loss.item())
                     bpnn_loss.update(L_BPNN.item())
@@ -237,9 +239,9 @@ def objective(trial):
 
                     with torch.no_grad():
                         psnr_train.update(calc_psnr(labels.cpu(),preds.clamp(0.0,1.0).cpu(),masks.cpu(),device="cpu").item())
-                        ssim_train.update(ssim(x=labels.cpu(),y=preds.clamp(0.0,1.0).cpu(),data_range=1.,downsample=False,mask=masks.cpu(),device="cpu"))
+                        ssim_train.update(ssim(x=labels.cpu(),y=preds.clamp(0.0,1.0).cpu(),data_range=1.,downsample=False,mask=masks.cpu(),device="cpu").item())
                     
-                    t.set_postfix(loss='{:.9f}'.format(epoch_losses.avg),bpnn='{:.3f}'.format(bpnn_loss.avg),psnr='{:.1f}'.format(psnr_train.avg))
+                    t.set_postfix(loss='{:.9f}'.format(epoch_losses.avg),LossSR='{:.9f}'.format(L_SR.item()),bpnn='{:.3f}'.format(bpnn_loss.avg),psnr='{:.1f}'.format(psnr_train.avg),ssim='{:.1f}'.format(ssim_train.avg),alpha='{:.8f}'.format(args.alpha[trial]))
                     t.update(len(inputs))
                         
             tr_psnr.append(psnr_train.avg)
@@ -274,9 +276,7 @@ def objective(trial):
                 with torch.no_grad():
                     preds=model(inputs)
                     preds,preds_bin = model(inputs)
-                    preds_bin=preds_bin.detach()
-                    preds=preds.clamp(0.0,1.0)   
-                    
+                    preds=preds.clamp(0.0,1.0)
                     gaussian_blur = transforms.GaussianBlur((3,3),3)
                     labels_bin = labels.clone().detach()
                     labels_bin = gaussian_blur(labels_bin)
@@ -296,17 +296,17 @@ def objective(trial):
                     #print("bvtv on SR:",BVTV_SR)
                     BVTV_HR = bvtv_loss(labels_bin,masks)
                     #print("bvtv on HR:",BVTV_HR)
-                    P_SR = torch.cat((P_SR,BVTV_SR),dim=1)
-                    P_HR = torch.cat((P_HR,BVTV_HR),dim=1)
+                    P_SR = torch.cat((P_SR,BVTV_SR),dim=1).clamp(-1,1)
+                    P_HR = torch.cat((P_HR,BVTV_HR),dim=1).clamp(-1,1)
                     
                     Leval_SR = criterion(preds, labels)
                     Leval_BPNN = Lbpnn(P_SR,P_HR)
                     
-                    loss_eval = Leval_SR #+ (args.alpha[trial] * Leval_BPNN)
+                    loss_eval = Leval_SR + (args.alpha[trial] * Leval_BPNN)
                     epoch_losses_eval.update(loss_eval.item())
                     bpnn_loss_eval.update(Leval_BPNN.item())
-                    psnr.update(calc_psnr(labels,preds,masks,device).item())
-                    ssim_list.update(ssim(x=labels,y=preds,data_range=1.,downsample=False,mask=masks,device='cpu'))
+                    psnr.update(calc_psnr(labels.cpu(),preds.clamp(0,1).cpu(),masks.cpu(),device="cpu").item())
+                    ssim_list.update(ssim(x=labels.cpu(),y=preds.clamp(0.0,1.0).cpu(),data_range=1.,downsample=False,mask=masks.cpu(),device='cpu').item())
                     #if os.path.exists('./save_image/epochs'+str(epoch)) == False:
                     #    os.makedirs('./save_image/epochs'+str(epoch))
                     #torchvision.utils.save_image(labels, './save_image/epochs' + str(epoch) + '/label'+imagename[0]+'.png')
@@ -341,8 +341,7 @@ def objective(trial):
                 with torch.no_grad():
                     #preds=model(inputs)
                     preds,preds_bin = model(inputs)
-                    preds=preds.clamp(0.0,1.0)
-                    preds_bin=preds_bin.detach()
+                    preds = preds.clamp(0.0,1.0)
                     gaussian_blur = transforms.GaussianBlur((3,3),3)
                     labels_bin = labels.clone().detach()
                     labels_bin = gaussian_blur(labels_bin)
@@ -362,27 +361,31 @@ def objective(trial):
                     #print("bvtv on SR:",BVTV_SR)
                     BVTV_HR = bvtv_loss(labels_bin,masks)
                     #print("bvtv on HR:",BVTV_HR)
-                    P_SR = torch.cat((P_SR,BVTV_SR),dim=1)
-                    P_HR = torch.cat((P_HR,BVTV_HR),dim=1)
+                    P_SR = torch.cat((P_SR,BVTV_SR),dim=1).clamp(-1,1)
+                    P_HR = torch.cat((P_HR,BVTV_HR),dim=1).clamp(-1,1)
                     #if epoch==args.num_epochs-1:
                     #    data_param_HR_test.append(P_HR.detach().numpy())
                     #    data_param_SR_test.append(P_SR.detach().numpy())
                     #    names_index_test.append(imagename)
                     Ltest_SR = criterion(preds, labels)
                     Ltest_BPNN = Lbpnn(P_SR,P_HR)
-                    loss_test = Ltest_SR #+ (args.alpha[trial] * Ltest_BPNN)
+                    loss_test = Ltest_SR + (args.alpha[trial] * Ltest_BPNN)
                     if best_epoch_tracking > loss_test.item():
                         best_epoch_tracking = loss_test.item();
                         if i%100:
+                            print("-")
                             torchvision.utils.save_image(labels_bin, './save_image/alpha_'+str(args.alpha[trial]) + '/labels_bin_'+imagename[0])
                             torchvision.utils.save_image(labels,'./save_image/alpha_'+str(args.alpha[trial])+'/labels_'+imagename[0])
                             torchvision.utils.save_image(preds_bin,'./save_image/alpha_'+str(args.alpha[trial])+'/preds_bin_'+imagename[0])
                             torchvision.utils.save_image(preds,'./save_image/alpha_'+str(args.alpha[trial])+'/preds'+imagename[0])
-
+                    
                     epoch_losses_test.update(loss_test.item())
                     bpnn_loss_test.update(Ltest_BPNN.item())
-                    psnr_test.update(calc_psnr(labels,preds,masks,device).item())
-                    ssim_test.update(ssim(x=labels,y=preds,data_range=1.,downsample=False,mask=masks))
+                    psnr_test.update(calc_psnr(labels.cpu(),preds.clamp(0.0,1.0).cpu(),masks.cpu(),device="cpu").item())
+                    ssim_test.update(ssim(x=labels.cpu(),y=preds.clamp(0.0,1.0).cpu(),data_range=1.,downsample=False,mask=masks.cpu(),device="cpu").item())
+            print("##### TEST #####")
+            print("ssim",epoch_losses_test.avg)
+            print("psnr", psnr_test.avg)
             t_score.append(epoch_losses_test.avg)
             t_bpnn.append(bpnn_loss_test.avg)
             t_psnr.append(psnr_test.avg)
@@ -452,12 +455,11 @@ def objective(trial):
     #torch.save(best_weights, os.path.join(args.outputs_dir, 'best.pth'))
 
 study= {"bpnn" :[], "psnr": [], "alpha": [],"ssim":[]}
-for n_trial in range(2):
+for n_trial in range(3):
     bp,ps,al,ss = objective(n_trial)
     study["bpnn"].append(bp)
     study["psnr"].append(ps)
     study["alpha"].append(al)
     study["ssim"].append(ss)
-
-with open("./FSRCNN_7p2alpha.pkl","wb") as f:
-    pickle.dump(study,f)
+    with open(args.name + ".pkl","wb") as f:
+        pickle.dump(study,f)
