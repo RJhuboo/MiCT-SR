@@ -95,7 +95,16 @@ def objective(trial):
     if args.k_fold >1:
         kf = KFold(n_splits = args.k_fold, shuffle=True)
     else:
-        kf = train_test_split(index,train_size=6000,test_size=1100,shuffle=False)
+        index = list(range(71))
+        kf = train_test_split(index,train_size=60,test_size=11,shuffle=True,random_state=42)
+        kf[0] = sorted(kf[0])
+        new_kf = [list(range(kf[0][i]*100,(kf[0][i]+1)*100)) for i in range(60)]
+        new_kf=np.array(new_kf)
+        kf[0] = np.vstack(new_kf).reshape((6000,1)).flatten()
+        new_kf = [list(range(kf[1][i]*100,(kf[1][i]+1)*100)) for i in range(11)]
+        new_kf = np.array(new_kf)
+        kf[1] = np.vstack(new_kf).reshape((1100,1)).flatten()
+        #kf = train_test_split(index,train_size=6000,test_size=1100,shuffle=False)
     #cross_bpnn, cross_score, cross_psnr, cross_ssim = np.zeros(args.num_epochs),np.zeros(args.num_epochs),np.zeros(args.num_epochs),np.zeros(args.num_epochs)
     #cross_bpnn_train, cross_score_train, cross_psnr_train, cross_ssim_train = np.zeros(args.num_epochs),np.zeros(args.num_epochs),np.zeros(args.num_epochs),np.zeros(args.num_epochs)
     for k in range(1):
@@ -461,5 +470,9 @@ for n_trial in range(3):
     study["psnr"].append(ps)
     study["alpha"].append(al)
     study["ssim"].append(ss)
+<<<<<<< HEAD
     with open("BPNN_2_2_4.pkl","wb") as f:
+=======
+    with open("BPNN_0_6_5.pkl","wb") as f:
+>>>>>>> 79da5bc1fc59c556d347c6b676258d596febbe0c
         pickle.dump(study,f)
