@@ -49,7 +49,7 @@ def objective(trial):
     parser.add_argument('--mask_dir',type=str,default = "./data/HR/Train_trab_mask")
     parser.add_argument('--outputs-dir', type=str, default = "./FSRCNN_search")
     parser.add_argument('--checkpoint_bpnn', type= str, default = "./checkpoints_bpnn/BPNN_checkpoint_lrhr.pth")
-    parser.add_argument('--alpha', type = list, default = [0,1e-6,1e-5])
+    parser.add_argument('--alpha', type = list, default = [2e-2,5e-2,5e-4])
     parser.add_argument('--Loss_bpnn', default = MSELoss)
     parser.add_argument('--weights-file', type=str)
     parser.add_argument('--scale', type=int, default=2)
@@ -65,7 +65,7 @@ def objective(trial):
     parser.add_argument('--gpu_ids', type=list, default = [0, 1, 2])
     parser.add_argument('--NB_LABEL', type=int, default = 7)
     parser.add_argument('--k_fold', type=int, default = 1)
-    parser.add_argument('--name', type=str, default = "BPNN_7lrhr_0_6_5alpha_clamp")
+    parser.add_argument('--name', type=str, default = "BPNN_7lrhr_2_2_4alpha_clamp")
     args = parser.parse_args()
 
     args.outputs_dir = os.path.join(args.outputs_dir, args.name)    
@@ -130,7 +130,7 @@ def objective(trial):
         #])
         
         dataset = TrainDataset(args.HR_dir, args.LR_dir, args.mask_dir,transform = my_transforms)
-        dataset_test = TestDataset("../BPNN/Test_trab","./data/LR/Test_trab","../BPNN/Test_trab_mask")
+        dataset_test = TestDataset("./data/HR/Test_trab","./data/LR/Test_trab","./data/HR/Test_mask")
         train_dataloader = DataLoader(dataset=dataset,
                                       batch_size=args.batch_size,
                                       sampler=train_index,
@@ -461,5 +461,5 @@ for n_trial in range(3):
     study["psnr"].append(ps)
     study["alpha"].append(al)
     study["ssim"].append(ss)
-    with open(args.name + ".pkl","wb") as f:
+    with open("BPNN_2_2_4.pkl","wb") as f:
         pickle.dump(study,f)
