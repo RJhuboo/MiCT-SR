@@ -49,13 +49,13 @@ def objective(trial):
     parser.add_argument('--mask_dir',type=str,default = "./data/HR/Train_trab_mask")
     parser.add_argument('--outputs-dir', type=str, default = "./FSRCNN_search")
     parser.add_argument('--checkpoint_bpnn', type= str, default = "./checkpoints_bpnn/BPNN_checkpoint_lrhr.pth")
-    parser.add_argument('--alpha', type = list, default = [10,20,30,40,50,60])
+    parser.add_argument('--alpha', type = list, default = [1,2,3,4,5,6,7,8,9])
     parser.add_argument('--Loss_bpnn', default = MSELoss)
     parser.add_argument('--weights-file', type=str)
     parser.add_argument('--scale', type=int, default=2)
     parser.add_argument('--lr', type=float, default=1e-3)#-2
     parser.add_argument('--batch-size', type=int, default=16)
-    parser.add_argument('--num-epochs', type=int, default=100)
+    parser.add_argument('--num-epochs', type=int, default=70)
     parser.add_argument('--num-workers', type=int, default=24)
     parser.add_argument('--seed', type=int, default=123)
     parser.add_argument('--nof', type= int, default = 64)
@@ -131,7 +131,7 @@ def objective(trial):
         my_transforms=None
 
         dataset = TrainDataset(args.HR_dir, args.LR_dir, args.mask_dir,transform = my_transforms)
-        dataset_test = TestDataset("./data/HR/Test_trab","./data/LR/Test_trab","./data/HR/Test_mask")
+        dataset_test = TestDataset("../BPNN/Test_trab","./data/LR/Test_trab","../BPNN/Test_trab_mask")
         train_dataloader = DataLoader(dataset=dataset,
                                       batch_size=args.batch_size,
                                       sampler=train_index,
@@ -197,7 +197,7 @@ def objective(trial):
 
                     L_SR = criterion(preds, labels)
                     L_BPNN = Lbpnn(P_SR,P_HR)
-                    loss = L_SR + (0 * L_BPNN)
+                    loss = L_SR + (1e-4 * L_BPNN)
 
                     epoch_losses.update(loss.item())
                     bpnn_loss.update(L_BPNN.item())
@@ -312,10 +312,10 @@ def objective(trial):
 
 
 study= {"loss":[],"alpha":[]}
-for n_trial in range(6):
+for n_trial in range(9):
     lo,al = objective(n_trial)
     study["loss"].append(lo)
     study["alpha"].append(al)
 
-    with open("Kbar_limit.pkl","wb") as f:
+    with open("K_limit.pkl","wb") as f:
         pickle.dump(study,f)
