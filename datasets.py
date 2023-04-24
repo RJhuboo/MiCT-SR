@@ -12,6 +12,7 @@ class TrainDataset(Dataset):
         self.HR_dir = HR_dir
         self.LR_dir = LR_dir
         self.mask_dir = mask_dir
+        #self.HRbin_dir = HRbin_dir
         self.transform = transform
 
     def __getitem__(self, idx):
@@ -20,6 +21,8 @@ class TrainDataset(Dataset):
         mask_path = os.path.join(self.mask_dir, all_images[idx].replace(".png",".bmp"))
         HR = io.imread(HR_path) / 255
         LR = io.imread(LR_path) / 255
+        
+        
         mask = io.imread(mask_path) /255
         #mask = transform.rescale(mask, 1/8, anti_aliasing=False) / 255
         HR = HR.astype('float32')
@@ -29,7 +32,7 @@ class TrainDataset(Dataset):
         p = random.random()
         rot = random.randint(-45,45)
         transform_list = []
-        HR,LR,mask=TF.to_pil_image(HR),TF.to_pil_image(LR),TF.to_pil_image(mask)
+        HR,LR,mask =TF.to_pil_image(HR),TF.to_pil_image(LR),TF.to_pil_image(mask)
         HR,LR,mask=TF.rotate(HR,rot),TF.rotate(LR,rot),TF.rotate(mask,rot)
         if p<0.3:
             HR,LR,mask=TF.vflip(HR),TF.vflip(LR),TF.vflip(mask)
@@ -51,7 +54,7 @@ class TrainDataset(Dataset):
         return len(all_images)
     
 class TestDataset(Dataset):
-    def __init__(self, HR_dir, LR_dir, mask_dir=None):
+    def __init__(self, HR_dir, LR_dir, mask_dir):
         super(TestDataset, self).__init__()
         self.HR_dir = HR_dir
         self.LR_dir = LR_dir
