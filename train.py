@@ -26,25 +26,25 @@ if __name__ == '__main__':
     parser.add_argument('--LR_dir', type=str,default = "./data/LR/Train_trab")
     parser.add_argument('--mask_dir', type=str,default = "./data/HR/Train_trab_mask")
     parser.add_argument('--outputs-dir', type=str, default = "./FSRCNN_search")
-    parser.add_argument('--checkpoint_bpnn', type= str, default = "./checkpoints_bpnn/BPNN_checkpoint_149.pth")
-    parser.add_argument('--alpha',type=float, default = 0.005)
+    parser.add_argument('--checkpoint_bpnn', type= str, default = "./checkpoints_bpnn/BPNN_checkpoint_TFfsrcnn.pth")
+    parser.add_argument('--alpha',type=float, default = 0.0001)
     parser.add_argument('--Loss_bpnn', default = MSELoss)
     parser.add_argument('--weights-file', type=str)
     parser.add_argument('--scale', type=int, default=2)
     parser.add_argument('--lr', type=float, default=1e-3)
     parser.add_argument('--batch-size', type=int, default=16)
-    parser.add_argument('--num-epochs', type=int, default=200)
+    parser.add_argument('--num-epochs', type=int, default=120)
     parser.add_argument('--num-workers', type=int, default=6)
     parser.add_argument('--seed', type=int, default=123)
     parser.add_argument('--nof', type= int, default = 23)
-    parser.add_argument('--n1', type=int,default = 124)
-    parser.add_argument('--n2', type=int,default = 125)
-    parser.add_argument('--n3', type=int,default = 147)
+    parser.add_argument('--n1', type=int,default = 158)
+    parser.add_argument('--n2', type=int,default = 152)
+    parser.add_argument('--n3', type=int,default = 83)
     parser.add_argument('--gpu_ids', type=list, default = [0,1,2])
-    parser.add_argument('--NB_LABEL', type=int, default = 11)
+    parser.add_argument('--NB_LABEL', type=int, default = 7)
     args = parser.parse_args()
 
-    args.outputs_dir = os.path.join(args.outputs_dir, 'BPNN_alpha0_11p_training_x{}'.format(args.scale))
+    args.outputs_dir = os.path.join(args.outputs_dir, 'BPNN_alpha0_0001_TF_x{}'.format(args.scale))
     
     if not os.path.exists(args.outputs_dir):
         os.makedirs(args.outputs_dir)
@@ -59,16 +59,15 @@ if __name__ == '__main__':
         device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
     
     # Load BPNN
-    #model_bpnn = BPNN(args.nof, args.NB_LABEL, n1= args.n1, n2=args.n2, n3=args.n3, k1=3,k2=3,k3=3).to(device)
-    #model_bpnn.load_state_dict(torch.load(os.path.join(args.checkpoint_bpnn)))
-    #if torch.cuda.device_count() > 1:
-    #    model_bpnn = nn.DataParallel(model_bpnn)
-    #model_bpnn.to(device)
-    
-    # Freeze BPNN
-    #for param in model_bpnn.parameters():
-    #    param.requires_grad = False
-    #model_bpnn.eval()
+    model_bpnn = BPNN(in_channel=1,features=args.nof, out_channels=args.NB_LABEL, n1= args.n1, n2=args.n2, n3=args.n3, k1=3,k2=3,k3=3).to(device)
+    model_bpnn.load_state_dict(torch.load(os.path.join(args.checkpoint_bpnn)))
+    if torch.cuda.device_count() > 1:
+        model_bpnn = nn.DataParallel(model_bpnn)
+    model_bpnn.to(device)
+    for param in model_bpnn.parameters():
+        param.requires_grad = False
+    model_bpnn.eval()
+
                        
     cross_bpnn, cross_score, cross_psnr = [], [], []
     
