@@ -59,7 +59,130 @@ def preprocess(img, device):
     x = x.unsqueeze(0).unsqueeze(0)
     return x
 
+def local_thickness(img,mask=None,voxel_size = 10.5,sep=True):
+    # Convert input tensors to NumPy arrays
+    img_np = img.cpu().numpy()
+    mask_np = mask.cpu().numpy() if mask is not None else None
+    if sep:
+        img = np.logical_not(img)
+    
+    # Compute the skeleton and distance transform of the binary image using medial axis
+    skel, dist = morphology.medial_axis(img_np, mask=mask_np, return_distance=True)
 
+    thickness_skeleton = np.ma.masked_array(dist, np.logical_not(skel).astype(bool))
+    mean_thickness = (
+        (np.sum(thickness_skeleton.compressed()) * 2) /
+        np.sum(np.ma.masked_array(skel, np.logical_not(mask_np).astype(bool)) * 1)
+    ) * voxel_size
+
+    # Convert the mean_thickness to a PyTorch tensor and return
+    mean_thickness = torch.from_numpy(np.array(mean_thickness)).to(img.device).float()
+
+#### Trabecular pattern factor function  ####
+
+def Trabecular_pattern(img,pixel_size = 10.5):
+
+    img_np = img.cpu().numpy()
+    # Smooth the trabecular bone surfaces
+    smoothed = morphology.binary_closing(img, morphology.disk(2))
+    smoothed = util.img_as_ubyte(smoothed)
+
+    # Dilate the trabeculae by a rank order operator (median filter)
+    dilated = filters.rank.median(smoothed*255, morphology.disk(1))
+
+
+    # Measure bone area (Al) and bone perimeter (Pl) of the binary image
+    props1 = measure.regionprops(smoothed,spacing=(pixel_size,pixel_size))
+    Al = props1[0].area
+    Pl = props1[0].perimeter 
+
+
+    # Measure bone area (A2) and bone perimeter (P2) of the dilated image
+    props2 = measure.regionprops(dilated,spacing=(pixel_size,pixel_size))
+    A2 = props2[0].area
+    P2 = props2[0].perimeter  
+
+    # Calculate TBPf as the quotient of the differences of the first and the second measurement
+    TBPf = (A2 - Al) / (P2 - Pl)
+
+
+    return TBPf
+
+#### Equivalent circle diameter function ####
+
+def Equivalent_circle_diameter(img,pixel_size=10.5):
+
+    # Label the objects of the image 
+    labeled = morphology.label(img)
+
+    # Diameter initilization
+    DEA = 0
+    count = 0
+
+    # Loop into all the objects of the image 
+    for region in measure.regionprops(labeled,spacing=pixel_size):
+
+        # Measure bone circle diameter equivalent area 
+        DEA += region.equivalent_diameter_area
+        count += 1
+    return DEA/count
+
+####  mixed function of Bone perimeter/area ratio, area, number of objects ####
+
+def perimeter_area(img,pixel_size=10.5):
+
+    # Label the objects of the image 
+    labeled = morphology.label(img)
+
+    # Diameter initilization
+    area = 0
+    perimeter_area_ratio = 0
+    count = 0
+
+    # Loop into all the objects of the image 
+    for region in measure.regionprops(labeled):#spacing=pixel_size):
+
+        # Measure bone circle diameter equivalent area 
+        area += region.area
+        perimeter_area_ratio += region.perimeter / (region.area*pixel_size)
+        count += 1
+    return (area*(pixel_size**2))/count, perimeter_area_ratio/count, count
+
+####  Bone to total area ratio ####
+
+def BVTV(img,mask):
+    BV=np.count_nonzero(img)
+    TV=np.count_nonzero(mask)
+    return (BV/TV) * 100
+
+class MorphLoss(nn.Module):
+    def __init__(self,voxel_size=10.5):
+        super(MorphLoss, self).__init__()
+        self.voxel_size = voxel_size
+        self.loss = nn.MSELoss()
+    
+    def forward(self,img,mask,target)
+        thicknessl = local_thickness(img,mask,self.voxel_size,sep=False)
+        thicknessh = local_thickness(target,mask,self.voxel_size,sep=False)
+        bvtvl = BVTV(img,mask,self.voxel_size)
+        bvtvh = BVTV(target,mask,self.voxel_size)
+        areal, perimeterl, nbobjl = perimeter_area(img,mask,self.voxel_size)
+        areah, perimeterh, nbobjh = perimeter_area(target,mask,self.voxel_size)
+        diameterl = Equivalent_circle_diameter(img,mask,self.voxel_size)
+        diameterh = Equivalent_circle_diameter(target,mask,self.voxel_size)
+        separationl = local_thickness(img,mask,self.voxel_size,sep=True)
+        separationh = local_thickness(target,mask,self.voxel_size,sep=True)
+        loss1 = self.loss(thicknessl,thicknessh)
+        loss2 = self.loss(bvtvl,bvtvh)
+        loss3 = self.loss(areal,areah)
+        loss4 = self.loss(perimeterl,perimeterh)
+        loss5 = self.loss(nbobjl,nbobjh)
+        loss6 = self.loss(diameterl,diameterh)
+        loss7 = self.loss(separationl,separationh)
+        total_loss = loss1+loss2+loss3+loss4+loss5+loss6+loss7
+        return total_loss
+
+#### PSNR Computation #### 
         
 def calc_psnr(img1,img2,mask,device):
     MSE = torch.sum((torch.mul((img1 - img2),mask))**2) / torch.sum(mask)
