@@ -48,10 +48,10 @@ def MSE(y_predicted,y,batch_size):
 
 def objective(trial):
     parser = argparse.ArgumentParser()
-    parser.add_argument('--HR_dir', type=str,default = "./data/HR/Train_Label_trab_100")
-    parser.add_argument('--LR_dir', type=str,default = "./data/LR/Train_trab")
-    parser.add_argument('--mask_dir',type=str,default = "./data/HR/Train_trab_mask")
-    parser.add_argument('--HR_bin_dir', type=str, default = "./data/HR/train_segmented")
+    parser.add_argument('--HR_dir', type=str,default = "/gpfsstore/rech/tvs/uki75tv/data_fsrcnn/HR/Train_Label_trab_100")
+    parser.add_argument('--LR_dir', type=str,default = "/gpfsstore/rech/tvs/uki75tv/data_fsrcnn/LR/Train_trab")
+    parser.add_argument('--mask_dir',type=str,default = "/gpfsstore/rech/tvs/uki75tv/data_fsrcnn/HR/Train_trab_mask")
+    parser.add_argument('--HR_bin_dir', type=str, default = "/gpfsstore/rech/tvs/uki75tv/data_fsrcnn/HR/train_segmented_test")
     parser.add_argument('--outputs-dir', type=str, default = "./FSRCNN_search")
     parser.add_argument('--checkpoint_bpnn', type= str, default = "./checkpoints_bpnn/BPNN_checkpoint_TFfsrcnn.pth")
     parser.add_argument('--alpha', type = list, default = [1e-4])
@@ -144,7 +144,7 @@ def objective(trial):
         #])
         
         dataset = TrainDataset(args.HR_dir, args.HR_bin_dir, args.LR_dir, args.mask_dir,transform = my_transforms)
-        dataset_test = TestDataset("./data/HR/Test_trab", "./data/HR/Test_segmented","./data/LR/Test_trab","./data/HR/Test_mask")
+        dataset_test = TestDataset("/gpfsstore/rech/tvs/uki75tv/Test_trab", "/gpfsstore/rech/tvs/uki75tv/data_fsrcnn/HR/test_segmented_test","/gpfsstore/rech/tvs/uki75tv/data_fsrcnn/LR/Test_trab","/gpfsstore/rech/tvs/uki75tv/Test_trab_mask")
         train_dataloader = DataLoader(dataset=dataset,
                                       batch_size=args.batch_size,
                                       sampler=train_index,
