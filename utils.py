@@ -5,6 +5,8 @@ from skimage import io
 import os
 import pytorch_ssim
 import torch.nn.functional as F
+from skimage import io, filters, morphology, measure, feature, util
+from scipy.ndimage import distance_transform_edt
 
 def calc_patch_size(func):
     def wrapper(args):
