@@ -60,33 +60,46 @@ def preprocess(img, device):
     x = x.unsqueeze(0).unsqueeze(0)
     return x
 
-def local_thickness(img,mask=None,voxel_size = 10.5,sep=True):
-    # Convert input tensors to NumPy arrays
-    img_np = img.cpu().numpy()
-    mask_np = mask.cpu().numpy() if mask is not None else None
-    if sep:
-        img = np.logical_not(img)
+#def local_thickness(img,mask=None,voxel_size = 10.5,sep=True):
+#    # Convert input tensors to NumPy arrays
+#    img_np = img.cpu().numpy()
+#    mask_np = mask.cpu().numpy() if mask is not None else None
+#    if sep:
+#        img = np.logical_not(img)
     
-    # Compute the skeleton and distance transform of the binary image using medial axis
-    skel, dist = morphology.medial_axis(img_np, mask=mask_np, return_distance=True)
+#    # Compute the skeleton and distance transform of the binary image using medial axis
+#    skel, dist = morphology.medial_axis(img_np, mask=mask_np, return_distance=True)
 
-    thickness_skeleton = np.ma.masked_array(dist, np.logical_not(skel).astype(bool))
-    mean_thickness = (
-        (np.sum(thickness_skeleton.compressed()) * 2) /
-        np.sum(np.ma.masked_array(skel, np.logical_not(mask_np).astype(bool)) * 1)
-    ) * voxel_size
+#    thickness_skeleton = np.ma.masked_array(dist, np.logical_not(skel).astype(bool))
+#    mean_thickness = (
+#        (np.sum(thickness_skeleton.compressed()) * 2) /
+#        np.sum(np.ma.masked_array(skel, np.logical_not(mask_np).astype(bool)) * 1)
+#    ) * voxel_size
 
     # Convert the mean_thickness to a PyTorch tensor and return
-    mean_thickness = torch.from_numpy(np.array(mean_thickness)).to(img.device).float()
+#    mean_thickness = torch.from_numpy(np.array(mean_thickness)).to(img.device).float()
+def local_thickness(img, mask=None, voxel_size=10.5, sep=True):
+    # Invert the image if sep=True
+    if sep:
+        img = torch.logical_not(img)
 
+    # Compute the skeleton and distance transform of the binary image using medial axis
+    skel, dist = medfilt(img, kernel_size=3, padding=1), medfilt(img, kernel_size=3, padding=1)
+
+    thickness_skeleton = torch.where(skel, dist, torch.tensor(float('inf'), device=img.device))
+    mean_thickness = (
+        (torch.sum(thickness_skeleton) * 2) /
+        torch.sum(torch.logical_and(skel, mask)) * 1
+    ) * voxel_size
+    
 #### Trabecular pattern factor function  ####
 
 def Trabecular_pattern(img,pixel_size = 10.5):
 
-    img_np = img.cpu().numpy()
+    #img_np = img.cpu().numpy()
     # Smooth the trabecular bone surfaces
     smoothed = morphology.binary_closing(img, morphology.disk(2))
-    smoothed = util.img_as_ubyte(smoothed)
+    smoothed = torch.as_tensor(smoothed, dtype=torch.uint8) #util.img_as_ubyte(smoothed)
 
     # Dilate the trabeculae by a rank order operator (median filter)
     dilated = filters.rank.median(smoothed*255, morphology.disk(1))
@@ -111,50 +124,84 @@ def Trabecular_pattern(img,pixel_size = 10.5):
 
 #### Equivalent circle diameter function ####
 
-def Equivalent_circle_diameter(img,pixel_size=10.5):
+#def Equivalent_circle_diameter(img,pixel_size=10.5):
 
     # Label the objects of the image 
-    labeled = morphology.label(img)
+#    labeled = morphology.label(img)
 
     # Diameter initilization
-    DEA = 0
-    count = 0
+#    DEA = 0
+#    count = 0
 
     # Loop into all the objects of the image 
-    for region in measure.regionprops(labeled,spacing=pixel_size):
+#    for region in measure.regionprops(labeled,spacing=pixel_size):
 
         # Measure bone circle diameter equivalent area 
-        DEA += region.equivalent_diameter_area
-        count += 1
-    return DEA/count
+ #       DEA += region.equivalent_diameter_area
+ #       count += 1
+ #   return DEA/count
+def Equivalent_circle_diameter(img, pixel_size=10.5):
+    # Label the objects of the image
+    labeled = morphology.label(img)
 
+    # Diameter initialization
+    DEA = torch.tensor(0, dtype=torch.float32)
+    count = torch.tensor(0, dtype=torch.float32)
+
+    # Loop into all the objects of the image
+    for region in measure.regionprops(labeled, spacing=(pixel_size, pixel_size)):
+        # Measure bone circle diameter equivalent area
+        DEA += torch.tensor(region.equivalent_diameter_area, dtype=torch.float32)
+        count += 1
+
+    return DEA / count
 ####  mixed function of Bone perimeter/area ratio, area, number of objects ####
 
-def perimeter_area(img,pixel_size=10.5):
+#def perimeter_area(img,pixel_size=10.5):
 
     # Label the objects of the image 
+#    labeled = morphology.label(img)
+
+#    # Diameter initilization
+#    area = 0
+#    perimeter_area_ratio = 0
+#    count = 0
+
+#    # Loop into all the objects of the image 
+#    for region in measure.regionprops(labeled):#spacing=pixel_size):
+#
+#        # Measure bone circle diameter equivalent area 
+#        area += region.area
+#        perimeter_area_ratio += region.perimeter / (region.area*pixel_size)
+#        count += 1
+#    return (area*(pixel_size**2))/count, perimeter_area_ratio/count, count
+def perimeter_area(img, pixel_size=10.5):
+    # Label the objects of the image
     labeled = morphology.label(img)
 
-    # Diameter initilization
-    area = 0
-    perimeter_area_ratio = 0
-    count = 0
+    # Initialization
+    area = torch.tensor(0, dtype=torch.float32)
+    perimeter_area_ratio = torch.tensor(0, dtype=torch.float32)
+    count = torch.tensor(0, dtype=torch.float32)
 
-    # Loop into all the objects of the image 
-    for region in measure.regionprops(labeled):#spacing=pixel_size):
-
-        # Measure bone circle diameter equivalent area 
-        area += region.area
-        perimeter_area_ratio += region.perimeter / (region.area*pixel_size)
+    # Loop into all the objects of the image
+    for region in measure.regionprops(labeled):
+        # Measure area and perimeter-area ratio
+        area += torch.tensor(region.area, dtype=torch.float32)
+        perimeter_area_ratio += torch.tensor(region.perimeter) / (torch.tensor(region.area) * pixel_size)
         count += 1
-    return (area*(pixel_size**2))/count, perimeter_area_ratio/count, count
 
+    return (area * (pixel_size ** 2)) / count, perimeter_area_ratio / count, count
 ####  Bone to total area ratio ####
 
-def BVTV(img,mask):
-    BV=np.count_nonzero(img)
-    TV=np.count_nonzero(mask)
-    return (BV/TV) * 100
+#def BVTV(img,mask):
+#    BV=np.count_nonzero(img)
+#    TV=np.count_nonzero(mask)
+#    return (BV/TV) * 100
+def BVTV(img, mask):
+    BV = torch.count_nonzero(img)
+    TV = torch.count_nonzero(mask)
+    return (BV / TV) * 100
 
 class MorphLoss(nn.Module):
     def __init__(self,voxel_size=10.5):
