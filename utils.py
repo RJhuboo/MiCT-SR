@@ -87,7 +87,7 @@ def local_thickness(img, mask=None, voxel_size=10.5, sep=True):
         img = torch.logical_not(img)
 
     # Compute the skeleton and distance transform of the binary image using medial axis
-    skel, dist = skel, dist = morphology.medial_axis(img_np, mask=mask_np, return_distance=True)
+    skel, dist = skel, dist = morphology.medial_axis(img, mask=mask, return_distance=True)
     thickness_skeleton = torch.where(skel, dist, torch.tensor(float('inf'), device=img.device))
     mean_thickness = (
         (torch.sum(thickness_skeleton) * 2) /
