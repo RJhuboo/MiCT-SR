@@ -15,7 +15,7 @@ import torchvision.transforms as transforms
 from skimage.filters import threshold_otsu 
 import pytorch_ssim
 from tqdm import tqdm
-import optuna
+#import optuna
 import joblib
 import numpy as np
 from sklearn.model_selection import train_test_split
@@ -104,6 +104,7 @@ def objective(trial):
         kf = train_test_split(index,train_size=60,test_size=11,shuffle=True,random_state=42)
         kf[0] = sorted(kf[0])
         new_kf = [list(range(kf[0][i]*100,(kf[0][i]+1)*100)) if kf[0][i] != 52 else [] for i in range(60)]
+        new_kf = [sublist for sublist in new_kf if sublist]
         new_kf=np.array(new_kf)
         kf[0] = np.vstack(new_kf).reshape((-1,1)).flatten()
         new_kf = [list(range(kf[1][i]*100,(kf[1][i]+1)*100)) for i in range(11)]
@@ -229,7 +230,7 @@ def objective(trial):
                     #    names_index.append(imagename)
                     L_SR = criterion(preds, labels)
                     #L_BPNN = Lbpnn(P_SR,P_HR)
-                    L_BPNN = MorphLoss(preds,masks,labels_bin)
+                    L_BPNN = Lbpnn(preds,masks,labels_bin)
                     #print("\n max bin:",preds_bin)
                     #print("min bin",torch.min(preds_bin))
                     #print("prediction:", preds_bin)
@@ -315,7 +316,7 @@ def objective(trial):
                     
                     Leval_SR = criterion(preds, labels)
                     #Leval_BPNN = Lbpnn(P_SR,P_HR)
-                    Leval_BPNN = MorphLoss(preds,masks,labels_bin)
+                    Leval_BPNN = Lbpnn(preds,masks,labels_bin)
                     
                     loss_eval = Leval_SR + (args.alpha[trial] * Leval_BPNN)
                     epoch_losses_eval.update(loss_eval.item())
@@ -388,7 +389,7 @@ def objective(trial):
                     #    names_index_test.append(imagename)
                     Ltest_SR = criterion(preds, labels)
                     #Ltest_BPNN = Lbpnn(P_SR,P_HR)
-                    Ltest_BPNN = MorphLoss(preds,masks,labels_bin)
+                    Ltest_BPNN = Lbpnn(preds,masks,labels_bin)
                     loss_test = Ltest_SR + (args.alpha[trial] * Ltest_BPNN)
                     #for nb_lab in range(args.NB_LABEL):
                     #    L_loss_test[i,nb_lab] = MSE(P_SR[0,nb_lab],P_HR[0,nb_lab],1)

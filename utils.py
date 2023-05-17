@@ -1,4 +1,5 @@
 import torch
+from torch import nn
 import numpy as np
 from skimage import io
 import os
@@ -161,7 +162,7 @@ class MorphLoss(nn.Module):
         self.voxel_size = voxel_size
         self.loss = nn.MSELoss()
     
-    def forward(self,img,mask,target)
+    def forward(self,img,mask,target):
         thicknessl = local_thickness(img,mask,self.voxel_size,sep=False)
         thicknessh = local_thickness(target,mask,self.voxel_size,sep=False)
         bvtvl = BVTV(img,mask,self.voxel_size)
