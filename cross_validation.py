@@ -103,9 +103,9 @@ def objective(trial):
         index = list(range(71))
         kf = train_test_split(index,train_size=60,test_size=11,shuffle=True,random_state=42)
         kf[0] = sorted(kf[0])
-        new_kf = [list(range(kf[0][i]*100,(kf[0][i]+1)*100)) for i in range(60)]
+        new_kf = [list(range(kf[0][i]*100,(kf[0][i]+1)*100)) if kf[0][i] != 52 else [] for i in range(60)]
         new_kf=np.array(new_kf)
-        kf[0] = np.vstack(new_kf).reshape((6000,1)).flatten()
+        kf[0] = np.vstack(new_kf).reshape((-1,1)).flatten()
         new_kf = [list(range(kf[1][i]*100,(kf[1][i]+1)*100)) for i in range(11)]
         new_kf = np.array(new_kf)
         kf[1] = np.vstack(new_kf).reshape((1100,1)).flatten()
