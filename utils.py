@@ -172,14 +172,14 @@ class MorphLoss(nn.Module):
         diameterh = Equivalent_circle_diameter(target,mask,self.voxel_size)
         separationl = local_thickness(img,mask,self.voxel_size,sep=True)
         separationh = local_thickness(target,mask,self.voxel_size,sep=True)
-        loss1 = self.loss(thicknessl,thicknessh)
-        loss2 = self.loss(bvtvl,bvtvh)
-        loss3 = self.loss(areal,areah)
-        loss4 = self.loss(perimeterl,perimeterh)
-        loss5 = self.loss(nbobjl,nbobjh)
-        loss6 = self.loss(diameterl,diameterh)
-        loss7 = self.loss(separationl,separationh)
-        total_loss = loss1+loss2+loss3+loss4+loss5+loss6+loss7
+        loss1 = self.loss((thicknessl-48.7578)/5.2874,(thicknessh-48.7578)/5.2874)
+        loss2 = self.loss((bvtvl-16.1473)/7.64596,(bvtvh-16.1473)/7.64596)
+        loss3 = self.loss((areal-11166.6)/6145.2,(areah-11166.6)/6145.2)
+        loss4 = self.loss((perimeterl-0.0583277)/0.00581525,(perimeterh-0.0583277)/0.00581525)
+        loss5 = self.loss((nbobjl-25.8531)/12.2747,(nbobjh-25.8531)/12.2747)
+        loss6 = self.loss((diameterl-30.2512)/6.56558,(diameterh-30.2512)/6.56558)
+        loss7 = self.loss((separationl-156.729)/46.1809,(separationh-156.729)/46.1809)
+        total_loss = (1/7)*(loss1+loss2+loss3+loss4+loss5+loss6+loss7)
         return total_loss
 
 #### PSNR Computation #### 
@@ -187,6 +187,7 @@ class MorphLoss(nn.Module):
 def calc_psnr(img1,img2,mask,device):
     MSE = torch.sum((torch.mul((img1 - img2),mask))**2) / torch.sum(mask)
     return 10. * torch.log10(1. / MSE)
+
 
 #def calc_ssim(img1,img2, directory, name):
 #    name = name[0].replace("png","bmp")
