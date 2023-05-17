@@ -51,6 +51,7 @@ def objective(trial):
     parser.add_argument('--HR_dir', type=str,default = "./data/HR/Train_Label_trab_100")
     parser.add_argument('--LR_dir', type=str,default = "./data/LR/Train_trab")
     parser.add_argument('--mask_dir',type=str,default = "./data/HR/Train_trab_mask")
+    parser.add_argument('--HR_bin_dir', type=str, default = "./data/HR/train_segmented")
     parser.add_argument('--outputs-dir', type=str, default = "./FSRCNN_search")
     parser.add_argument('--checkpoint_bpnn', type= str, default = "./checkpoints_bpnn/BPNN_checkpoint_TFfsrcnn.pth")
     parser.add_argument('--alpha', type = list, default = [1e-4])
@@ -69,7 +70,7 @@ def objective(trial):
     parser.add_argument('--gpu_ids', type=list, default = [0, 1, 2])
     parser.add_argument('--NB_LABEL', type=int, default = 7)
     parser.add_argument('--k_fold', type=int, default = 1)
-    parser.add_argument('--name', type=str, default = "BPNN_TF_lastone_4")
+    parser.add_argument('--name', type=str, default = "BPNN_param_algo")
     args = parser.parse_args()
 
     args.outputs_dir = os.path.join(args.outputs_dir, args.name)    
@@ -85,14 +86,14 @@ def objective(trial):
     else:
         device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
     
-    model_bpnn = BPNN(in_channel=1,features=args.nof, out_channels=args.NB_LABEL, n1= args.n1, n2=args.n2, n3=args.n3, k1=3,k2=3,k3=3).to(device)
-    model_bpnn.load_state_dict(torch.load(os.path.join(args.checkpoint_bpnn)))
-    if torch.cuda.device_count() > 1:
-        model_bpnn = nn.DataParallel(model_bpnn)
-    model_bpnn.to(device)
-    for param in model_bpnn.parameters():
-        param.requires_grad = False
-    model_bpnn.eval()
+    #model_bpnn = BPNN(in_channel=1,features=args.nof, out_channels=args.NB_LABEL, n1= args.n1, n2=args.n2, n3=args.n3, k1=3,k2=3,k3=3).to(device)
+    #model_bpnn.load_state_dict(torch.load(os.path.join(args.checkpoint_bpnn)))
+    #if torch.cuda.device_count() > 1:
+    #    model_bpnn = nn.DataParallel(model_bpnn)
+    #model_bpnn.to(device)
+    #for param in model_bpnn.parameters():
+    #    param.requires_grad = False
+    #model_bpnn.eval()
        
     #train_dataset = TrainDataset(args.HR_dir,args.LR_dir)
     index = range(NB_DATA)
@@ -142,8 +143,8 @@ def objective(trial):
         #  transforms.ToTensor(),
         #])
         
-        dataset = TrainDataset(args.HR_dir, args.LR_dir, args.mask_dir,transform = my_transforms)
-        dataset_test = TestDataset("./data/HR/Test_trab","./data/LR/Test_trab","./data/HR/Test_mask")
+        dataset = TrainDataset(args.HR_dir, args.HR_bin_dir, args.LR_dir, args.mask_dir,transform = my_transforms)
+        dataset_test = TestDataset("./data/HR/Test_trab", "./data/HR/Test_segmented","./data/LR/Test_trab","./data/HR/Test_mask")
         train_dataloader = DataLoader(dataset=dataset,
                                       batch_size=args.batch_size,
                                       sampler=train_index,
@@ -181,17 +182,12 @@ def objective(trial):
                 t.set_description('epoch: {}/{}'.format(epoch, args.num_epochs - 1))
 
                 for data in train_dataloader:
-                    inputs, labels, masks, imagename = data
+                    inputs, labels, labels_bin, masks, imagename = data
                     inputs = inputs.reshape(inputs.size(0),1,256,256)
                     labels = labels.reshape(labels.size(0),1,512,512)
+                    labels_bin = labels_bin.reshape(labels_bin.size(0),1,512,512)
                     masks = masks.reshape(masks.size(0),1,512,512)
-                    #inputs, labels, masks = inputs.float(), labels.float(), masks.float()
-                    #inputs, labels, masks = inputs.to(device), labels.to(device), masks.to(device)
-                    inputs, labels, masks = inputs.to(device), labels.to(device), masks.to(device)
-                    #print("max labels",torch.max(labels))
-                    #print(" min labels", torch.min(labels))
-                   #torchvision.utils.save_image(inputs,'inputs.png')
-                    #preds = model(inputs)
+                    inputs, labels, labels_bin, masks = inputs.to(device), labels.to(device), labels_bin.to(device), masks.to(device)
                     preds,preds_bin = model(inputs)
                     preds = preds.clamp(0.0,1.0)
                     #torchvision.utils.save_image(preds,'preds.png')
@@ -233,7 +229,7 @@ def objective(trial):
                     #    names_index.append(imagename)
                     L_SR = criterion(preds, labels)
                     #L_BPNN = Lbpnn(P_SR,P_HR)
-                    L_BPNN = MorphLoss(preds,masks,label)
+                    L_BPNN = MorphLoss(preds,masks,labels_bin)
                     #print("\n max bin:",preds_bin)
                     #print("min bin",torch.min(preds_bin))
                     #print("prediction:", preds_bin)
@@ -280,14 +276,16 @@ def objective(trial):
             epoch_losses_eval = AverageMeter()
             bpnn_loss_eval = AverageMeter()
             for data in eval_dataloader:
-                inputs, labels, masks, imagename = data
+                inputs, labels, labels_bin, masks, imagename = data
                 inputs = inputs.reshape(inputs.size(0),1,256,256)
                 labels = labels.reshape(labels.size(0),1,512,512)
+                labels_bin = labels_bin.reshape(labels_bin.size(0),1,512,512)
                 masks = masks.reshape(masks.size(0),1,512,512)
                 #inputs, labels, masks = inputs.float(), labels.float(), masks.float()
                 
                 inputs = inputs.to(device)
                 labels = labels.to(device)
+                labels_bin = labels_bin.to(device)
                 masks = masks.to(device)
                 with torch.no_grad():
                     preds=model(inputs)
@@ -317,7 +315,7 @@ def objective(trial):
                     
                     Leval_SR = criterion(preds, labels)
                     #Leval_BPNN = Lbpnn(P_SR,P_HR)
-                    Leval_BPNN = MorphLoss(preds,masks,labels)
+                    Leval_BPNN = MorphLoss(preds,masks,labels_bin)
                     
                     loss_eval = Leval_SR + (args.alpha[trial] * Leval_BPNN)
                     epoch_losses_eval.update(loss_eval.item())
@@ -348,14 +346,16 @@ def objective(trial):
             L_loss_test=np.zeros((len(test_dataloader),args.NB_LABEL))
             IDs=[]
             for i,data in enumerate(test_dataloader):
-                inputs, labels, masks, imagename = data
+                inputs, labels, labels_bin, masks, imagename = data
                 inputs = inputs.reshape(inputs.size(0),1,256,256)
                 labels = labels.reshape(labels.size(0),1,512,512)
+                labels_bin = labels_bin.reshape(labels_bin.size(0),1,512,512)
                 masks = masks.reshape(masks.size(0),1,512,512)
                 #inputs, labels, masks = inputs.float(), labels.float(), masks.float()
 
                 inputs = inputs.to(device)
                 labels = labels.to(device)
+                labels_bin = labels_bin.to(device)
                 masks = masks.to(device)
                 with torch.no_grad():
                     #preds=model(inputs)
@@ -388,10 +388,10 @@ def objective(trial):
                     #    names_index_test.append(imagename)
                     Ltest_SR = criterion(preds, labels)
                     #Ltest_BPNN = Lbpnn(P_SR,P_HR)
-                    Ltest_BPNN = MorphLoss(preds,masks,labels)
+                    Ltest_BPNN = MorphLoss(preds,masks,labels_bin)
                     loss_test = Ltest_SR + (args.alpha[trial] * Ltest_BPNN)
-                    for nb_lab in range(args.NB_LABEL):
-                        L_loss_test[i,nb_lab] = MSE(P_SR[0,nb_lab],P_HR[0,nb_lab],1)
+                    #for nb_lab in range(args.NB_LABEL):
+                    #    L_loss_test[i,nb_lab] = MSE(P_SR[0,nb_lab],P_HR[0,nb_lab],1)
                     IDs.append(imagename)
 
                     #if epoch == args.num_epochs - 1 :
@@ -452,7 +452,7 @@ def objective(trial):
                      "eval_ssim": e_ssim,
                      "bpnn_val": e_bpnn,
                      "loss_val": e_score,
-                     "loss_per_param": L_loss_test,
+                     #"loss_per_param": L_loss_test,
                      "ID":IDs,
                      #"param_SR": df_SR,
                      #"param_HR": df_HR,
@@ -486,5 +486,5 @@ for n_trial in range(1):
     study["alpha"].append(al)
     study["ssim"].append(ss)
 
-    with open("BPNN_TF_lastone_4.pkl","wb") as f:
+    with open("BPNN_param_algo.pkl","wb") as f:
         pickle.dump(study,f)
