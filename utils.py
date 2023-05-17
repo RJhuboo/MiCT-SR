@@ -4,7 +4,7 @@ import numpy as np
 from skimage import io
 import os
 import pytorch_ssim
-from torch.nn.functional import medfilt
+import torch.nn.functional as F
 
 def calc_patch_size(func):
     def wrapper(args):
@@ -85,8 +85,7 @@ def local_thickness(img, mask=None, voxel_size=10.5, sep=True):
         img = torch.logical_not(img)
 
     # Compute the skeleton and distance transform of the binary image using medial axis
-    skel, dist = medfilt(img, kernel_size=3, padding=1), medfilt(img, kernel_size=3, padding=1)
-
+    skel, dist =F.medial_axis(img, mask, return_distance=True)
     thickness_skeleton = torch.where(skel, dist, torch.tensor(float('inf'), device=img.device))
     mean_thickness = (
         (torch.sum(thickness_skeleton) * 2) /
