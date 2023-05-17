@@ -4,6 +4,7 @@ import numpy as np
 from skimage import io
 import os
 import pytorch_ssim
+from torch.nn.functional import medfilt
 
 def calc_patch_size(func):
     def wrapper(args):
