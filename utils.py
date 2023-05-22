@@ -63,36 +63,37 @@ def preprocess(img, device):
     x = x.unsqueeze(0).unsqueeze(0)
     return x
 
-#def local_thickness(img,mask=None,voxel_size = 10.5,sep=True):
-#    # Convert input tensors to NumPy arrays
-#    img_np = img.cpu().numpy()
-#    mask_np = mask.cpu().numpy() if mask is not None else None
-#    if sep:
-#        img = np.logical_not(img)
+def local_thickness(img,mask=None,voxel_size = 10.5,sep=True):
+    # Convert input tensors to NumPy arrays
+    #img_np = img.cpu().numpy()
+    #mask_np = mask.cpu().numpy() if mask is not None else None
+    if sep:
+        img = np.logical_not(img)
     
-#    # Compute the skeleton and distance transform of the binary image using medial axis
-#    skel, dist = morphology.medial_axis(img_np, mask=mask_np, return_distance=True)
+    # Compute the skeleton and distance transform of the binary image using medial axis
+    skel, dist = morphology.medial_axis(img, mask=mask, return_distance=True)
 
-#    thickness_skeleton = np.ma.masked_array(dist, np.logical_not(skel).astype(bool))
-#    mean_thickness = (
-#        (np.sum(thickness_skeleton.compressed()) * 2) /
-#        np.sum(np.ma.masked_array(skel, np.logical_not(mask_np).astype(bool)) * 1)
-#    ) * voxel_size
+    thickness_skeleton = np.ma.masked_array(dist, np.logical_not(skel).astype(bool))
+    mean_thickness = (
+        (np.sum(thickness_skeleton.compressed()) * 2) /
+        np.sum(np.ma.masked_array(skel, np.logical_not(mask).astype(bool)) * 1)
+    ) * voxel_size
 
     # Convert the mean_thickness to a PyTorch tensor and return
-#    mean_thickness = torch.from_numpy(np.array(mean_thickness)).to(img.device).float()
-def local_thickness(img, mask=None, voxel_size=10.5, sep=True):
+    mean_thickness = torch.from_numpy(np.array(mean_thickness)).float()
+    return mean_thickness
+#def local_thickness(img, mask=None, voxel_size=10.5, sep=True):
     # Invert the image if sep=True
-    if sep:
-        img = torch.logical_not(img)
+#    if sep:
+#        img = torch.logical_not(img)
 
     # Compute the skeleton and distance transform of the binary image using medial axis
-    skel, dist = skel, dist = morphology.medial_axis(img, mask=mask, return_distance=True)
-    thickness_skeleton = torch.where(skel, dist, torch.tensor(float('inf'), device=img.device))
-    mean_thickness = (
-        (torch.sum(thickness_skeleton) * 2) /
-        torch.sum(torch.logical_and(skel, mask)) * 1
-    ) * voxel_size
+#    skel, dist = skel, dist = morphology.medial_axis(img, mask=mask, return_distance=True)
+#    thickness_skeleton = torch.where(skel, dist, torch.tensor(float('inf'), device=img.device))
+#    mean_thickness = (
+#        (torch.sum(thickness_skeleton) * 2) /
+#        torch.sum(torch.logical_and(skel, mask)) * 1
+#    ) * voxel_size
     
 #### Trabecular pattern factor function  ####
 
@@ -151,9 +152,9 @@ def Equivalent_circle_diameter(img, pixel_size=10.5):
     count = torch.tensor(0, dtype=torch.float32)
 
     # Loop into all the objects of the image
-    for region in measure.regionprops(labeled, spacing=(pixel_size, pixel_size)):
+    for region in measure.regionprops(labeled):
         # Measure bone circle diameter equivalent area
-        DEA += torch.tensor(region.equivalent_diameter_area, dtype=torch.float32)
+        DEA += torch.tensor(region.equivalent_diameter_area * 10.5, dtype=torch.float32)
         count += 1
 
     return DEA / count
@@ -212,24 +213,31 @@ class MorphLoss(nn.Module):
         self.loss = nn.MSELoss()
     
     def forward(self,img,mask,target):
+        img = img.detach().cpu().numpy()
+        mask = mask.detach().cpu().numpy()
+        target = target.detach().cpu().numpy()
+        img = (img[0,0,:,:]>0.22)*1
+        mask = mask[0,0,:,:]>0.5
+        target = (target[0,0,:,:]>0.22)*1
         thicknessl = local_thickness(img,mask,self.voxel_size,sep=False)
         thicknessh = local_thickness(target,mask,self.voxel_size,sep=False)
-        bvtvl = BVTV(img,mask,self.voxel_size)
-        bvtvh = BVTV(target,mask,self.voxel_size)
-        areal, perimeterl, nbobjl = perimeter_area(img,mask,self.voxel_size)
-        areah, perimeterh, nbobjh = perimeter_area(target,mask,self.voxel_size)
-        diameterl = Equivalent_circle_diameter(img,mask,self.voxel_size)
-        diameterh = Equivalent_circle_diameter(target,mask,self.voxel_size)
+        #bvtvl = BVTV(img,mask)
+        #bvtvh = BVTV(target,mask)
+        #areal, perimeterl, nbobjl = perimeter_area(img,self.voxel_size)
+        #areah, perimeterh, nbobjh = perimeter_area(target,self.voxel_size)
+        #diameterl = Equivalent_circle_diameter(img,self.voxel_size)
+        #diameterh = Equivalent_circle_diameter(target,self.voxel_size)
         separationl = local_thickness(img,mask,self.voxel_size,sep=True)
         separationh = local_thickness(target,mask,self.voxel_size,sep=True)
         loss1 = self.loss((thicknessl-48.7578)/5.2874,(thicknessh-48.7578)/5.2874)
-        loss2 = self.loss((bvtvl-16.1473)/7.64596,(bvtvh-16.1473)/7.64596)
-        loss3 = self.loss((areal-11166.6)/6145.2,(areah-11166.6)/6145.2)
-        loss4 = self.loss((perimeterl-0.0583277)/0.00581525,(perimeterh-0.0583277)/0.00581525)
-        loss5 = self.loss((nbobjl-25.8531)/12.2747,(nbobjh-25.8531)/12.2747)
-        loss6 = self.loss((diameterl-30.2512)/6.56558,(diameterh-30.2512)/6.56558)
+        #loss2 = self.loss((bvtvl-16.1473)/7.64596,(bvtvh-16.1473)/7.64596)
+        #loss3 = self.loss((areal-11166.6)/6145.2,(areah-11166.6)/6145.2)
+        #loss4 = self.loss((perimeterl-0.0583277)/0.00581525,(perimeterh-0.0583277)/0.00581525)
+        #loss5 = self.loss((nbobjl-25.8531)/12.2747,(nbobjh-25.8531)/12.2747)
+        #loss6 = self.loss((diameterl-30.2512)/6.56558,(diameterh-30.2512)/6.56558)
         loss7 = self.loss((separationl-156.729)/46.1809,(separationh-156.729)/46.1809)
-        total_loss = (1/7)*(loss1+loss2+loss3+loss4+loss5+loss6+loss7)
+        print(loss1,loss7)
+        total_loss = (1/2)*(loss1+loss7)
         return total_loss
 
 #### PSNR Computation #### 
