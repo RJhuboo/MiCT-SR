@@ -238,7 +238,7 @@ def objective(trial):
                     #print("prediction:", preds_bin)
                     #if epoch >3:
                        #args.alpha[trial]= 0.0001
-                    loss =  L_BPNN
+                    loss =  L_SR+(args.alpha*L_BPNN)
                     epoch_losses.update(loss.item())
                     bpnn_loss.update(L_BPNN.item())
                     optimizer.zero_grad()
