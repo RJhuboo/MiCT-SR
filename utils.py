@@ -78,9 +78,9 @@ def local_thickness(img,mask=None,voxel_size = 10.5,sep=True):
         (np.sum(thickness_skeleton.compressed()) * 2) /
         np.sum(np.ma.masked_array(skel, np.logical_not(mask).astype(bool)) * 1)
     ) * voxel_size
-
+    
     # Convert the mean_thickness to a PyTorch tensor and return
-    mean_thickness = torch.from_numpy(np.array(mean_thickness)).float()
+    #mean_thickness = torch.from_numpy(np.array(mean_thickness)).float()
     return mean_thickness
 #def local_thickness(img, mask=None, voxel_size=10.5, sep=True):
     # Invert the image if sep=True
@@ -206,39 +206,69 @@ def BVTV(img, mask):
     TV = torch.count_nonzero(mask)
     return (BV / TV) * 100
 
-class MorphLoss(nn.Module):
-    def __init__(self,voxel_size=10.5):
-        super(MorphLoss, self).__init__()
-        self.voxel_size = voxel_size
-        self.loss = nn.MSELoss()
+class MorphLoss(autograd.Function):
     
-    def forward(self,img,mask,target):
+    @staticmethod
+    def forward(self,img,mask,target,voxel_size):
+        ctx.save_for_backward(img, target)
+        ctx.mask = mask
+        ctx.voxel_size = voxel_size
         img = img.detach().cpu().numpy()
         mask = mask.detach().cpu().numpy()
+        batch_size = img.shape[0]
         target = target.detach().cpu().numpy()
         img = (img[0,0,:,:]>0.22)*1
         mask = mask[0,0,:,:]>0.5
         target = (target[0,0,:,:]>0.22)*1
-        thicknessl = local_thickness(img,mask,self.voxel_size,sep=False)
-        thicknessh = local_thickness(target,mask,self.voxel_size,sep=False)
-        #bvtvl = BVTV(img,mask)
-        #bvtvh = BVTV(target,mask)
-        #areal, perimeterl, nbobjl = perimeter_area(img,self.voxel_size)
-        #areah, perimeterh, nbobjh = perimeter_area(target,self.voxel_size)
-        #diameterl = Equivalent_circle_diameter(img,self.voxel_size)
-        #diameterh = Equivalent_circle_diameter(target,self.voxel_size)
-        separationl = local_thickness(img,mask,self.voxel_size,sep=True)
-        separationh = local_thickness(target,mask,self.voxel_size,sep=True)
-        loss1 = self.loss((thicknessl-48.7578)/5.2874,(thicknessh-48.7578)/5.2874)
+        thck_h=np.zeros((batch_size))
+        thck_l=np.zeros((batch_size))
+        for batch in batch_size:
+            thicknessl = local_thickness(img[batch_size,:,:,:],mask[batch_size,:,:,:],voxel_size,sep=False)
+            thicknessh = local_thickness(target[batch_size,:,:,:],mask[batch_size,:,:,:],voxel_size,sep=False)
+            #bvtvl = BVTV(img,mask)
+            #bvtvh = BVTV(target,mask)
+            #areal, perimeterl, nbobjl = perimeter_area(img,self.voxel_size)
+            #areah, perimeterh, nbobjh = perimeter_area(target,self.voxel_size)
+            #diameterl = Equivalent_circle_diameter(img,self.voxel_size)
+            #diameterh = Equivalent_circle_diameter(target,self.voxel_size)
+            #separationl = local_thickness(img,mask,self.voxel_size,sep=True)
+            #separationh = local_thickness(target,mask,self.voxel_size,sep=True)
+            thck_h[batch]=(thicknessl-48.7578)/5.2874
+            thck_l[batch]=(thicknessh-48.7578)/5.2874)
+        
         #loss2 = self.loss((bvtvl-16.1473)/7.64596,(bvtvh-16.1473)/7.64596)
         #loss3 = self.loss((areal-11166.6)/6145.2,(areah-11166.6)/6145.2)
         #loss4 = self.loss((perimeterl-0.0583277)/0.00581525,(perimeterh-0.0583277)/0.00581525)
         #loss5 = self.loss((nbobjl-25.8531)/12.2747,(nbobjh-25.8531)/12.2747)
         #loss6 = self.loss((diameterl-30.2512)/6.56558,(diameterh-30.2512)/6.56558)
-        loss7 = self.loss((separationl-156.729)/46.1809,(separationh-156.729)/46.1809)
-        print(loss1,loss7)
-        total_loss = (1/2)*(loss1+loss7)
-        return total_loss
+        #loss7 = self.loss((separationl-156.729)/46.1809,(separationh-156.729)/46.1809)
+        # MSE 
+        loss1 = torch.square(torch.sum(torch.tensor(thck_h) - torch.tensor(thck_l)))/(batch_size * 2)
+        return loss1
+    
+    @staticmethod
+    def backward(ctx, grad_output):
+        input_img, label_img = ctx.saved_tensors
+        mask = ctx.mask
+        voxel_size = ctx.voxel_size
+
+        # Convert torch tensors to NumPy arrays
+        input_img_np = input_img.detach().cpu().numpy()
+        label_img_np = label_img.detach().cpu().numpy()
+        
+        batch_size = img.shape[0]
+        thck_h=np.zeros((batch_size))
+        thck_l=np.zeros((batch_size))
+        
+        for batch in batch_size:
+            thicknessl = local_thickness(input_img_np[batch,:,:,:],mask[batch,:,:,:],voxel_size,sep=False)
+            thicknessh = local_thickness(label_img_np[batch,:,:,:],mask[batch_size,:,:,:],voxel_size,sep=False)
+            thck_h[batch]=(thicknessl-48.7578)/5.2874
+            thck_l[batch]=(thicknessh-48.7578)/5.2874)
+
+        # Compute the gradients of the input image using chain rule
+        grad_input = (1/batch_size)*torch.sum( * (torch.tensor(thck_h) - torch.tensor(thck_l))*grad_output
+        return grad_input
 
 #### PSNR Computation #### 
         
