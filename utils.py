@@ -75,10 +75,7 @@ def local_thickness(img,mask=None,voxel_size = 10.5,sep=True):
     skel, dist = morphology.medial_axis(img, mask=mask, return_distance=True)
 
     thickness_skeleton = np.ma.masked_array(dist, np.logical_not(skel).astype(bool))
-    mean_thickness = (
-        (np.sum(thickness_skeleton.compressed()) * 2) /
-        np.sum(np.ma.masked_array(skel, np.logical_not(mask).astype(bool)) * 1)
-    ) * voxel_size
+    mean_thickness = ( (np.sum(thickness_skeleton.compressed()) * 2) / np.sum(np.ma.masked_array(skel, np.logical_not(mask).astype(bool)) * 1)) * voxel_size
     
     # Convert the mean_thickness to a PyTorch tensor and return
     #mean_thickness = torch.from_numpy(np.array(mean_thickness)).float()
