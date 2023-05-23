@@ -209,7 +209,7 @@ def BVTV(img, mask):
 
 class MorphLoss(autograd.Function):
     @staticmethod
-    def forward(ctx,img,mask,target,voxel_size):
+    def forward(ctx,img,mask,target,voxel_size=10.5):
         ctx.save_for_backward(img, target)
         ctx.mask = mask
         ctx.voxel_size = voxel_size
