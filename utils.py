@@ -270,8 +270,13 @@ class MorphLoss(autograd.Function):
             thck_l[batch]=(thicknessh-48.7578)/5.2874
 
         # Compute the gradients of the input image using chain rule
-        grad_input = (1/batch_size)*torch.sum(torch.tensor(thck_h) - torch.tensor(thck_l))*grad_output
-        return grad_input, None, None
+        grad_input = torch.zeros_like(input_img)
+        for batch in range(batch_size):
+            # Compute the gradient for each input image in the batch
+            grad_input[batch, 0, :, :] = (
+                (1 / batch_size) * (thck_l[batch] - thck_h[batch]) * grad_output
+            )
+        return grad_input, None, None, None 
 
 #### PSNR Computation #### 
         
