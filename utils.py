@@ -217,9 +217,9 @@ class MorphLoss(autograd.Function):
         mask = mask.detach().cpu().numpy()
         batch_size = img.shape[0]
         target = target.detach().cpu().numpy()
-        img = (img[0,0,:,:]>0.22)*1
-        mask = mask[0,0,:,:]>0.5
-        target = (target[0,0,:,:]>0.22)*1
+        img = (img>0.22)*1
+        mask = mask>0.5
+        target = (target>0.22)*1
         thck_h=np.zeros((batch_size))
         thck_l=np.zeros((batch_size))
         for batch in range(batch_size):
@@ -251,7 +251,10 @@ class MorphLoss(autograd.Function):
         input_img, label_img = ctx.saved_tensors
         mask = ctx.mask
         voxel_size = ctx.voxel_size
-
+        
+        input_img = (input_img>0.22)*1
+        mask = mask>0.5
+        label_img = (label_img>0.22)*1
         # Convert torch tensors to NumPy arrays
         input_img_np = input_img.detach().cpu().numpy()
         label_img_np = label_img.detach().cpu().numpy()
