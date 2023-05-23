@@ -4,6 +4,7 @@ import numpy as np
 from skimage import io
 import os
 import pytorch_ssim
+import torch.autograd as autograd
 import torch.nn.functional as F
 from skimage import io, filters, morphology, measure, feature, util
 from scipy.ndimage import distance_transform_edt
@@ -207,9 +208,8 @@ def BVTV(img, mask):
     return (BV / TV) * 100
 
 class MorphLoss(autograd.Function):
-    
     @staticmethod
-    def forward(self,img,mask,target,voxel_size):
+    def forward(ctx,img,mask,target,voxel_size):
         ctx.save_for_backward(img, target)
         ctx.mask = mask
         ctx.voxel_size = voxel_size
@@ -256,7 +256,7 @@ class MorphLoss(autograd.Function):
         input_img_np = input_img.detach().cpu().numpy()
         label_img_np = label_img.detach().cpu().numpy()
         
-        batch_size = img.shape[0]
+        batch_size = input_img_np.shape[0]
         thck_h=np.zeros((batch_size))
         thck_l=np.zeros((batch_size))
         
