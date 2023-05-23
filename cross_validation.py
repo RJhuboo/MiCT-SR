@@ -132,8 +132,10 @@ def objective(trial):
             model = nn.DataParallel(model) 
         model.to(device)
         criterion = nn.MSELoss()
-        Lbpnn =  MorphLoss()
         
+        # Loss BPNN 
+        Lbpnn = LossMorph.apply
+
         my_transforms=None
         #my_transforms = transforms.Compose([
         #  transforms.ToPILImage(),
