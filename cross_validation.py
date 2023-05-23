@@ -134,7 +134,7 @@ def objective(trial):
         criterion = nn.MSELoss()
         
         # Loss BPNN 
-        Lbpnn = LossMorph.apply
+        Lbpnn = MorphLoss.apply
 
         my_transforms=None
         #my_transforms = transforms.Compose([
