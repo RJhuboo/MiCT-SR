@@ -234,7 +234,7 @@ class MorphLoss(autograd.Function):
             #separationl = local_thickness(img,mask,self.voxel_size,sep=True)
             #separationh = local_thickness(target,mask,self.voxel_size,sep=True)
             thck_h[batch]=(thicknessl-48.7578)/5.2874
-            thck_l[batch]=(thicknessh-48.7578)/5.2874)
+            thck_l[batch]=(thicknessh-48.7578)/5.2874
         
         #loss2 = self.loss((bvtvl-16.1473)/7.64596,(bvtvh-16.1473)/7.64596)
         #loss3 = self.loss((areal-11166.6)/6145.2,(areah-11166.6)/6145.2)
