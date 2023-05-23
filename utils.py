@@ -223,8 +223,8 @@ class MorphLoss(autograd.Function):
         thck_h=np.zeros((batch_size))
         thck_l=np.zeros((batch_size))
         for batch in range(batch_size):
-            thicknessl = local_thickness(img[batch_size,:,:,:],mask[batch_size,:,:,:],voxel_size,sep=False)
-            thicknessh = local_thickness(target[batch_size,:,:,:],mask[batch_size,:,:,:],voxel_size,sep=False)
+            thicknessl = local_thickness(img[batch,0,:,:],mask[batch,0,:,:],voxel_size,sep=False)
+            thicknessh = local_thickness(target[batch,0,:,:],mask[batch,0,:,:],voxel_size,sep=False)
             #bvtvl = BVTV(img,mask)
             #bvtvh = BVTV(target,mask)
             #areal, perimeterl, nbobjl = perimeter_area(img,self.voxel_size)
@@ -258,20 +258,20 @@ class MorphLoss(autograd.Function):
         # Convert torch tensors to NumPy arrays
         input_img_np = input_img.detach().cpu().numpy()
         label_img_np = label_img.detach().cpu().numpy()
-        
+        mask = mask.detach().cpu().numpy()        
         batch_size = input_img_np.shape[0]
         thck_h=np.zeros((batch_size))
         thck_l=np.zeros((batch_size))
         
         for batch in range(batch_size):
-            thicknessl = local_thickness(input_img_np[batch,:,:,:],mask[batch,:,:,:],voxel_size,sep=False)
-            thicknessh = local_thickness(label_img_np[batch,:,:,:],mask[batch_size,:,:,:],voxel_size,sep=False)
+            thicknessl = local_thickness(input_img_np[batch,0,:,:],mask[batch,0,:,:],voxel_size,sep=False)
+            thicknessh = local_thickness(label_img_np[batch,0,:,:],mask[batch,0,:,:],voxel_size,sep=False)
             thck_h[batch]=(thicknessl-48.7578)/5.2874
             thck_l[batch]=(thicknessh-48.7578)/5.2874
 
         # Compute the gradients of the input image using chain rule
         grad_input = (1/batch_size)*torch.sum(torch.tensor(thck_h) - torch.tensor(thck_l))*grad_output
-        return grad_input
+        return grad_input, None, None
 
 #### PSNR Computation #### 
         
