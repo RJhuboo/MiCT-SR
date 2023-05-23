@@ -222,7 +222,7 @@ class MorphLoss(autograd.Function):
         target = (target[0,0,:,:]>0.22)*1
         thck_h=np.zeros((batch_size))
         thck_l=np.zeros((batch_size))
-        for batch in batch_size:
+        for batch in range(batch_size):
             thicknessl = local_thickness(img[batch_size,:,:,:],mask[batch_size,:,:,:],voxel_size,sep=False)
             thicknessh = local_thickness(target[batch_size,:,:,:],mask[batch_size,:,:,:],voxel_size,sep=False)
             #bvtvl = BVTV(img,mask)
@@ -260,7 +260,7 @@ class MorphLoss(autograd.Function):
         thck_h=np.zeros((batch_size))
         thck_l=np.zeros((batch_size))
         
-        for batch in batch_size:
+        for batch in range(batch_size):
             thicknessl = local_thickness(input_img_np[batch,:,:,:],mask[batch,:,:,:],voxel_size,sep=False)
             thicknessh = local_thickness(label_img_np[batch,:,:,:],mask[batch_size,:,:,:],voxel_size,sep=False)
             thck_h[batch]=(thicknessl-48.7578)/5.2874
