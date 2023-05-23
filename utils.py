@@ -264,7 +264,7 @@ class MorphLoss(autograd.Function):
             thicknessl = local_thickness(input_img_np[batch,:,:,:],mask[batch,:,:,:],voxel_size,sep=False)
             thicknessh = local_thickness(label_img_np[batch,:,:,:],mask[batch_size,:,:,:],voxel_size,sep=False)
             thck_h[batch]=(thicknessl-48.7578)/5.2874
-            thck_l[batch]=(thicknessh-48.7578)/5.2874)
+            thck_l[batch]=(thicknessh-48.7578)/5.2874
 
         # Compute the gradients of the input image using chain rule
         grad_input = (1/batch_size)*torch.sum( * (torch.tensor(thck_h) - torch.tensor(thck_l))*grad_output
