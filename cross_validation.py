@@ -238,7 +238,7 @@ def objective(trial):
                     #print("prediction:", preds_bin)
                     #if epoch >3:
                        #args.alpha[trial]= 0.0001
-                    if epoch ==1:
+                    if epoch ==5:
                         loss =  L_SR+(args.alpha[trial] *L_BPNN)
                     else:
                         loss = L_SR
