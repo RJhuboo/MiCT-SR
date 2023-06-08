@@ -27,8 +27,8 @@ class TrainDataset(Dataset):
         HR = HR.astype('float32')
         HR_bin = HR_bin.astype('float32')
         LR = LR.astype('float32')
+        LR = transform.rescale(LR, 1/2, anti_aliasing=True)
         mask = mask.astype('float32')
-        
         p = random.random()
         rot = random.randint(-45,45)
         transform_list = []
@@ -71,6 +71,7 @@ class TestDataset(Dataset):
         HR = HR.astype('float32')
         HR_bin = HR_bin.astype('float32')
         LR = LR.astype('float32')
+        LR = transform(LR, 1/2, antialiasing=True)
         mask = mask.astype('float32')
         return LR, HR,HR_bin, mask, all_images[idx]
     def __len__(self):
