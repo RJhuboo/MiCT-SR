@@ -27,10 +27,8 @@ from utils import AverageMeter, calc_psnr, MorphLoss
 from ssim import ssim
 import pandas as pd
 import time
-import sys
-import psutil
+
 from PIL import Image
-import math
 
 NB_DATA = 7100
 def bvtv_loss(tensor_to_count,tensor_mask):
@@ -60,7 +58,7 @@ def objective(trial):
     parser.add_argument('--scale', type=int, default=2)
     parser.add_argument('--lr', type=float, default=1e-3)#-2
     parser.add_argument('--batch-size', type=int, default=16)
-    parser.add_argument('--num-epochs', type=int, default=150)
+    parser.add_argument('--num-epochs', type=int, default=1)
     parser.add_argument('--num-workers', type=int, default=24)
     parser.add_argument('--seed', type=int, default=123)
     parser.add_argument('--nof', type= int, default = 64)
@@ -70,7 +68,7 @@ def objective(trial):
     parser.add_argument('--gpu_ids', type=list, default = [0, 1, 2])
     parser.add_argument('--NB_LABEL', type=int, default = 7)
     parser.add_argument('--k_fold', type=int, default = 1)
-    parser.add_argument('--name', type=str, default = "BPNN_segmented")
+    parser.add_argument('--name', type=str, default = "BPNN_alpha0_4_time")
     args = parser.parse_args()
 
     args.outputs_dir = os.path.join(args.outputs_dir, args.name)    
@@ -144,8 +142,8 @@ def objective(trial):
         #  transforms.ToTensor(),
         #])
         
-        dataset = TrainDataset(args.HR_dir, args.HR_bin_dir, args.LR_dir, args.mask_dir,transform = my_transforms)
-        dataset_test = TestDataset("/gpfsstore/rech/tvs/uki75tv/Test_trab", "/gpfsstore/rech/tvs/uki75tv/data_fsrcnn/HR/test_segmented_test","/gpfsstore/rech/tvs/uki75tv/data_fsrcnn/LR/Test_trab","/gpfsstore/rech/tvs/uki75tv/Test_trab_mask")
+        dataset = TrainDataset(args.HR_dir, args.LR_dir, args.mask_dir,transform = my_transforms)
+        dataset_test = TestDataset("/gpfsstore/rech/tvs/uki75tv/Test_trab","/gpfsstore/rech/tvs/uki75tv/data_fsrcnn/LR/Test_trab","/gpfsstore/rech/tvs/uki75tv/Test_trab_mask")
         train_dataloader = DataLoader(dataset=dataset,
                                       batch_size=args.batch_size,
                                       sampler=train_index,
@@ -181,7 +179,7 @@ def objective(trial):
             ssim_train = AverageMeter()
             with tqdm(total=(len(train_dataloader) - len(train_dataloader) % args.batch_size), ncols=80) as t:
                 t.set_description('epoch: {}/{}'.format(epoch, args.num_epochs - 1))
-
+                start_time = time.time()
                 for data in train_dataloader:
                     inputs, labels, labels_bin, masks, imagename = data
                     inputs = inputs.reshape(inputs.size(0),1,256,256)
@@ -192,25 +190,25 @@ def objective(trial):
                     preds,preds_bin = model(inputs)
                     preds = preds.clamp(0.0,1.0)
                     #torchvision.utils.save_image(preds,'preds.png')
-                    #gaussian_blur = transforms.GaussianBlur((3,3),3)
-                    #labels_bin = labels.clone().detach()
+                    gaussian_blur = transforms.GaussianBlur((3,3),3)
+                    labels_bin = labels.clone().detach()
                     masks_bin = masks.clone().detach()
                     masks_bin = F.interpolate(masks_bin, size=64)
-                    #labels_bin = gaussian_blur(labels_bin)
+                    labels_bin = gaussian_blur(labels_bin)
                     #preds_bin = preds.clone().cpu().detach().numpy()
-                    #labels_bin = labels_bin.cpu().numpy()
+                    labels_bin = labels_bin.cpu().numpy()
                     #t1, t2 = threshold_otsu(preds_bin*255),threshold_otsu(labels_bin*255)
                     #print(torch.max(preds),torch.min(preds))
                     #print(torch.max(labels),torch.min(labels))
                     #preds_bin, labels_bin = preds_bin>0.2, labels_bin>0.2
-                    #labels_bin = labels_bin>0.2
+                    labels_bin = labels_bin>0.2
                     #print(np.shape(preds))
                     #im=Image.fromarray(preds_bin.reshape((512,512)) * 255)
                     #im.save("image.png")
-                    #labels_bin = labels_bin.astype("float32")
+                    labels_bin = labels_bin.astype("float32")
                     #preds_bin = preds_bin.astype("float32")
                     #preds_bin = torch.from_numpy(preds_bin).to(device)
-                    #labels_bin = torch.from_numpy(labels_bin).to(device)
+                    labels_bin = torch.from_numpy(labels_bin).to(device)
                     #torchvision.utils.save_image(labels_bin, './save_image/labels_bin_'+imagename[0]+'.png')
                     #torchvision.utils.save_image(labels,'./save_image/labels_'+imagename[0]+'.png')
                     #torchvision.utils.save_image(preds_bin,'./save_image/preds_bin_'+imagename[0]+'.pngn')
@@ -253,7 +251,8 @@ def objective(trial):
                     
                     t.set_postfix(loss='{:.9f}'.format(epoch_losses.avg),LossSR='{:.9f}'.format(L_SR.item()),bpnn='{:.3f}'.format(bpnn_loss.avg),psnr='{:.1f}'.format(psnr_train.avg),ssim='{:.1f}'.format(ssim_train.avg),alpha='{:.8f}'.format(args.alpha[trial]))
                     t.update(len(inputs))
-                        
+                elapsed_time = time.time() - start_time
+                print("temps écoulé training :",elapsed_time, "s")        
             #if epoch > args.num_epochs - 10:
                 #torch.save(model.state_dict(), os.path.join(args.outputs_dir, str(args.alpha[trial])+'_best.pth'))
             tr_psnr.append(psnr_train.avg)
@@ -291,19 +290,19 @@ def objective(trial):
                     preds=model(inputs)
                     preds,preds_bin = model(inputs)
                     preds=preds.clamp(0.0,1.0)
-                    #gaussian_blur = transforms.GaussianBlur((3,3),3)
-                    #labels_bin = labels.clone().detach()
-                    #labels_bin = gaussian_blur(labels_bin)
+                    gaussian_blur = transforms.GaussianBlur((3,3),3)
+                    labels_bin = labels.clone().detach()
+                    labels_bin = gaussian_blur(labels_bin)
                     #preds_bin = preds.clone().cpu().detach().numpy()
-                    #labels_bin = labels_bin.cpu().numpy()
+                    labels_bin = labels_bin.cpu().numpy()
                     masks_bin = masks.clone().detach()
                     masks_bin = F.interpolate(masks_bin, size=64)
                     #t1, t2 = threshold_otsu(preds),threshold_otsu(labels)
-                    #labels_bin = labels_bin>0.2
-                    #labels_bin = labels_bin.astype("float32")
+                    labels_bin = labels_bin>0.2
+                    labels_bin = labels_bin.astype("float32")
                     #preds_bin = preds_bin.astype("float32")
                     #preds_bin = torch.from_numpy(preds_bin).to(device)
-                    #labels_bin = torch.from_numpy(labels_bin).to(device)
+                    labels_bin = torch.from_numpy(labels_bin).to(device)
                     P_SR = model_bpnn(masks_bin,preds_bin)
                     P_HR = model_bpnn(masks_bin,labels_bin)
                     BVTV_SR = bvtv_loss(preds_bin,masks)
@@ -345,6 +344,7 @@ def objective(trial):
             L_loss_test=np.zeros((len(test_dataloader),args.NB_LABEL))
             IDs=[]
             for i,data in enumerate(test_dataloader):
+                start_time = time.time()
                 inputs, labels, labels_bin, masks, imagename = data
                 inputs = inputs.reshape(inputs.size(0),1,256,256)
                 labels = labels.reshape(labels.size(0),1,512,512)
@@ -360,19 +360,19 @@ def objective(trial):
                     #preds=model(inputs)
                     preds,preds_bin = model(inputs)
                     preds = preds.clamp(0.0,1.0)
-                    #gaussian_blur = transforms.GaussianBlur((3,3),3)
-                    #labels_bin = labels.clone().detach()
-                    #labels_bin = gaussian_blur(labels_bin)
+                    gaussian_blur = transforms.GaussianBlur((3,3),3)
+                    labels_bin = labels.clone().detach()
+                    labels_bin = gaussian_blur(labels_bin)
                     #preds_bin = preds.clone().cpu().detach().numpy()
-                    #labels_bin = labels_bin.cpu().numpy()
+                    labels_bin = labels_bin.cpu().numpy()
                     masks_bin = masks.clone().detach()
                     masks_bin = F.interpolate(masks_bin, size=64)
                     #t1, t2 = threshold_otsu(preds),threshold_otsu(labels)
-                    #labels_bin = labels_bin>0.2
-                    #labels_bin = labels_bin.astype("float32")
+                    labels_bin = labels_bin>0.2
+                    labels_bin = labels_bin.astype("float32")
                     #preds_bin = preds_bin.astype("float32")
                     #preds_bin = torch.from_numpy(preds_bin).to(device)
-                    #labels_bin = torch.from_numpy(labels_bin).to(device)
+                    labels_bin = torch.from_numpy(labels_bin).to(device)
                     P_SR = model_bpnn(masks_bin,preds_bin)
                     P_HR = model_bpnn(masks_bin,labels_bin)
                     BVTV_SR = bvtv_loss(preds_bin,masks)
@@ -392,7 +392,8 @@ def objective(trial):
                     #for nb_lab in range(args.NB_LABEL):
                     #    L_loss_test[i,nb_lab] = MSE(P_SR[0,nb_lab],P_HR[0,nb_lab],1)
                     IDs.append(imagename)
-
+                    elapsed_time = time.time() - start_time
+                    print("Temps écoulé :", elapsed_time, "s")
                     #if epoch == args.num_epochs - 1 :
                     #    torchvision.utils.save_image(labels_bin, args.outputs_dir +'/alpha_'+str(args.alpha[trial]) + '/labels_bin_'+imagename[0])
                     #    torchvision.utils.save_image(labels, args.outputs_dir +'/alpha_'+str(args.alpha[trial])+'/labels_'+imagename[0])
