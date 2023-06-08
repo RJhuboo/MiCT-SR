@@ -52,7 +52,7 @@ def objective(trial):
     parser.add_argument('--HR_bin_dir', type=str, default = "/gpfsstore/rech/tvs/uki75tv/data_fsrcnn/HR/train_segmented_test")
     parser.add_argument('--outputs-dir', type=str, default = "./FSRCNN_search")
     parser.add_argument('--checkpoint_bpnn', type= str, default = "./checkpoints_bpnn/BPNN_checkpoint_lrhr.pth")
-    parser.add_argument('--alpha', type = list, default = [1e-4])
+    parser.add_argument('--alpha', type = list, default = [0])
     parser.add_argument('--Loss_bpnn', default = MSELoss)
     parser.add_argument('--weights-file', type=str)
     parser.add_argument('--scale', type=int, default=2)
