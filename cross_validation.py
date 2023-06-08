@@ -181,12 +181,12 @@ def objective(trial):
                 t.set_description('epoch: {}/{}'.format(epoch, args.num_epochs - 1))
                 start_time = time.time()
                 for data in train_dataloader:
-                    inputs, labels, labels_bin, masks, imagename = data
+                    inputs, labels, masks, imagename = data
                     inputs = inputs.reshape(inputs.size(0),1,256,256)
                     labels = labels.reshape(labels.size(0),1,512,512)
-                    labels_bin = labels_bin.reshape(labels_bin.size(0),1,512,512)
+                    #labels_bin = labels_bin.reshape(labels_bin.size(0),1,512,512)
                     masks = masks.reshape(masks.size(0),1,512,512)
-                    inputs, labels, labels_bin, masks = inputs.to(device), labels.to(device), labels_bin.to(device), masks.to(device)
+                    inputs, labels, masks = inputs.to(device), labels.to(device), masks.to(device)
                     preds,preds_bin = model(inputs)
                     preds = preds.clamp(0.0,1.0)
                     #torchvision.utils.save_image(preds,'preds.png')
@@ -275,16 +275,16 @@ def objective(trial):
             epoch_losses_eval = AverageMeter()
             bpnn_loss_eval = AverageMeter()
             for data in eval_dataloader:
-                inputs, labels, labels_bin, masks, imagename = data
+                inputs, labels, masks, imagename = data
                 inputs = inputs.reshape(inputs.size(0),1,256,256)
                 labels = labels.reshape(labels.size(0),1,512,512)
-                labels_bin = labels_bin.reshape(labels_bin.size(0),1,512,512)
+                #labels_bin = labels_bin.reshape(labels_bin.size(0),1,512,512)
                 masks = masks.reshape(masks.size(0),1,512,512)
                 #inputs, labels, masks = inputs.float(), labels.float(), masks.float()
                 
                 inputs = inputs.to(device)
                 labels = labels.to(device)
-                labels_bin = labels_bin.to(device)
+                #labels_bin = labels_bin.to(device)
                 masks = masks.to(device)
                 with torch.no_grad():
                     preds=model(inputs)
@@ -345,16 +345,16 @@ def objective(trial):
             IDs=[]
             for i,data in enumerate(test_dataloader):
                 start_time = time.time()
-                inputs, labels, labels_bin, masks, imagename = data
+                inputs, labels, masks, imagename = data
                 inputs = inputs.reshape(inputs.size(0),1,256,256)
                 labels = labels.reshape(labels.size(0),1,512,512)
-                labels_bin = labels_bin.reshape(labels_bin.size(0),1,512,512)
+                #labels_bin = labels_bin.reshape(labels_bin.size(0),1,512,512)
                 masks = masks.reshape(masks.size(0),1,512,512)
                 #inputs, labels, masks = inputs.float(), labels.float(), masks.float()
 
                 inputs = inputs.to(device)
                 labels = labels.to(device)
-                labels_bin = labels_bin.to(device)
+                #labels_bin = labels_bin.to(device)
                 masks = masks.to(device)
                 with torch.no_grad():
                     #preds=model(inputs)
