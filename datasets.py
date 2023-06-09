@@ -71,7 +71,7 @@ class TestDataset(Dataset):
         HR = HR.astype('float32')
         HR_bin = HR_bin.astype('float32')
         LR = LR.astype('float32')
-        LR = transform(LR, 1/2, antialiasing=True)
+        LR = transform.rescale(LR, 1/2, antialiasing=True)
         mask = mask.astype('float32')
         return LR, HR,HR_bin, mask, all_images[idx]
     def __len__(self):
