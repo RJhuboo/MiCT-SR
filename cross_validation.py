@@ -60,7 +60,7 @@ def objective(trial):
     parser.add_argument('--scale', type=int, default=4)
     parser.add_argument('--lr', type=float, default=1e-3)#-2
     parser.add_argument('--batch-size', type=int, default=16)
-    parser.add_argument('--num-epochs', type=int, default=150)
+    parser.add_argument('--num-epochs', type=int, default=1)
     parser.add_argument('--num-workers', type=int, default=24)
     parser.add_argument('--seed', type=int, default=123)
     parser.add_argument('--nof', type= int, default = 64)
@@ -235,7 +235,7 @@ def objective(trial):
                     #print("prediction:", preds_bin)
                     #if epoch >3:
                        #args.alpha[trial]= 0.0001
-                    loss =  L_SR + args.alpha * L_BPNN
+                    loss =  L_SR + args.alpha[trial] * L_BPNN
                     epoch_losses.update(loss.item())
                     bpnn_loss.update(L_BPNN.item())
                     optimizer.zero_grad()
@@ -386,8 +386,8 @@ def objective(trial):
                     #    data_param_SR_test.append(P_SR.detach().numpy())
                     #    names_index_test.append(imagename)
                     Ltest_SR = criterion(preds, labels)
-                    #Ltest_BPNN = Lbpnn(P_SR,P_HR)
-                    Ltest_BPNN = Lbpnn(preds,masks,labels_bin)
+                    Ltest_BPNN = Lbpnn(P_SR,P_HR)
+                    #Ltest_BPNN = Lbpnn(preds,masks,labels_bin)
                     loss_test = Ltest_SR + (args.alpha[trial] * Ltest_BPNN)
                     #for nb_lab in range(args.NB_LABEL):
                     #    L_loss_test[i,nb_lab] = MSE(P_SR[0,nb_lab],P_HR[0,nb_lab],1)
@@ -485,5 +485,5 @@ for n_trial in range(2):
     study["alpha"].append(al)
     study["ssim"].append(ss)
 
-    with open("BPNN_segmented.pkl","wb") as f:
+    with open("BPNN_x4.pkl","wb") as f:
         pickle.dump(study,f)
