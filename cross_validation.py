@@ -184,7 +184,7 @@ def objective(trial):
 
                 for data in train_dataloader:
                     inputs, labels, labels_bin, masks, imagename = data
-                    inputs = inputs.reshape(inputs.size(0),1,256,256)
+                    inputs = inputs.reshape(inputs.size(0),1,inputs.size(2),inputs.size(2))
                     labels = labels.reshape(labels.size(0),1,512,512)
                     labels_bin = labels_bin.reshape(labels_bin.size(0),1,512,512)
                     masks = masks.reshape(masks.size(0),1,512,512)
@@ -277,7 +277,7 @@ def objective(trial):
             bpnn_loss_eval = AverageMeter()
             for data in eval_dataloader:
                 inputs, labels, labels_bin, masks, imagename = data
-                inputs = inputs.reshape(inputs.size(0),1,256,256)
+                inputs = inputs.reshape(inputs.size(0),1,inputs.size(2),inputs.size(2))
                 labels = labels.reshape(labels.size(0),1,512,512)
                 labels_bin = labels_bin.reshape(labels_bin.size(0),1,512,512)
                 masks = masks.reshape(masks.size(0),1,512,512)
@@ -346,7 +346,7 @@ def objective(trial):
             IDs=[]
             for i,data in enumerate(test_dataloader):
                 inputs, labels, labels_bin, masks, imagename = data
-                inputs = inputs.reshape(inputs.size(0),1,256,256)
+                inputs = inputs.reshape(inputs.size(0),1,inputs.size(2),inputs.size(2))
                 labels = labels.reshape(labels.size(0),1,512,512)
                 labels_bin = labels_bin.reshape(labels_bin.size(0),1,512,512)
                 masks = masks.reshape(masks.size(0),1,512,512)
