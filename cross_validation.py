@@ -68,7 +68,7 @@ def objective(trial):
     parser.add_argument('--gpu_ids', type=list, default = [0, 1, 2])
     parser.add_argument('--NB_LABEL', type=int, default = 7)
     parser.add_argument('--k_fold', type=int, default = 1)
-    parser.add_argument('--name', type=str, default = "BPNN_alpha0_4_time")
+    parser.add_argument('--name', type=str, default = "BPNN_alpha0_6_5_recall")
     args = parser.parse_args()
 
     args.outputs_dir = os.path.join(args.outputs_dir, args.name)    
@@ -479,12 +479,12 @@ def objective(trial):
     #torch.save(best_weights, os.path.join(args.outputs_dir, 'best.pth'))
 
 study= {"bpnn" :[], "psnr": [], "alpha": [],"ssim":[]}
-for n_trial in range(2):
+for n_trial in range(3):
     bp,ps,al,ss = objective(n_trial)
     study["bpnn"].append(bp)
     study["psnr"].append(ps)
     study["alpha"].append(al)
     study["ssim"].append(ss)
 
-    with open("BPNN_segmented.pkl","wb") as f:
+    with open("BPNN_0_4_recall.pkl","wb") as f:
         pickle.dump(study,f)
