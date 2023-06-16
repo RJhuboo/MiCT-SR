@@ -52,7 +52,7 @@ def objective(trial):
     parser.add_argument('--HR_bin_dir', type=str, default = "/gpfsstore/rech/tvs/uki75tv/data_fsrcnn/HR/train_segmented_test")
     parser.add_argument('--outputs-dir', type=str, default = "./FSRCNN_search")
     parser.add_argument('--checkpoint_bpnn', type= str, default = "./checkpoints_bpnn/BPNN_checkpoint_lrhr.pth")
-    parser.add_argument('--alpha', type = list, default = [0,1e-6,1e-5])
+    parser.add_argument('--alpha', type = list, default = [1e-4,1e-3,1e-2])
     parser.add_argument('--Loss_bpnn', default = MSELoss)
     parser.add_argument('--weights-file', type=str)
     parser.add_argument('--scale', type=int, default=2)
@@ -68,7 +68,7 @@ def objective(trial):
     parser.add_argument('--gpu_ids', type=list, default = [0, 1, 2])
     parser.add_argument('--NB_LABEL', type=int, default = 7)
     parser.add_argument('--k_fold', type=int, default = 1)
-    parser.add_argument('--name', type=str, default = "BPNN_alpha0_6_5_recall")
+    parser.add_argument('--name', type=str, default = "BPNN_alpha4_3_2_recall")
     args = parser.parse_args()
 
     args.outputs_dir = os.path.join(args.outputs_dir, args.name)    
@@ -486,5 +486,5 @@ for n_trial in range(3):
     study["alpha"].append(al)
     study["ssim"].append(ss)
 
-    with open("BPNN_0_4_recall.pkl","wb") as f:
+    with open("BPNN_4_3_2recall.pkl","wb") as f:
         pickle.dump(study,f)
