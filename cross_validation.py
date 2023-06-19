@@ -68,7 +68,7 @@ def objective(trial):
     parser.add_argument('--gpu_ids', type=list, default = [0, 1, 2])
     parser.add_argument('--NB_LABEL', type=int, default = 7)
     parser.add_argument('--k_fold', type=int, default = 1)
-    parser.add_argument('--name', type=str, default = "BPNN_alpha4_3_2_recall")
+    parser.add_argument('--name', type=str, default = "BPNN_alpha4_3_2_recall_clamp")
     args = parser.parse_args()
 
     args.outputs_dir = os.path.join(args.outputs_dir, args.name)    
@@ -220,8 +220,8 @@ def objective(trial):
                     BVTV_HR = bvtv_loss(labels,masks)
                     
                     #print("bvtv on HR:",BVTV_HR)
-                    P_SR = torch.cat((P_SR,BVTV_SR),dim=1)
-                    P_HR = torch.cat((P_HR,BVTV_HR),dim=1)
+                    P_SR = torch.cat((P_SR,BVTV_SR),dim=1).clamp(-1,1)
+                    P_HR = torch.cat((P_HR,BVTV_HR),dim=1).clamp(-1,1)
                     #if epoch == args.num_epochs - 1:
                     #    data_param_SR.append(P_SR.detach().numpy())
                     #    data_param_HR.append(P_HR.detach().numpy())
@@ -233,7 +233,7 @@ def objective(trial):
                     #print("prediction:", preds_bin)
                     #if epoch >3:
                        #args.alpha[trial]= 0.0001
-                    loss =  L_SR + args.alpha[trial] * L_BPNN
+                    loss =  L_SR + (args.alpha[trial] * L_BPNN)
                     epoch_losses.update(loss.item())
                     bpnn_loss.update(L_BPNN.item())
                     optimizer.zero_grad()
@@ -309,8 +309,8 @@ def objective(trial):
                     #print("bvtv on SR:",BVTV_SR)
                     BVTV_HR = bvtv_loss(labels_bin,masks)
                     #print("bvtv on HR:",BVTV_HR)
-                    P_SR = torch.cat((P_SR,BVTV_SR),dim=1)
-                    P_HR = torch.cat((P_HR,BVTV_HR),dim=1)
+                    P_SR = torch.cat((P_SR,BVTV_SR),dim=1).clamp(-1,1)
+                    P_HR = torch.cat((P_HR,BVTV_HR),dim=1).clamp(-1,1)
                     
                     Leval_SR = criterion(preds, labels)
                     Leval_BPNN = Lbpnn(P_SR,P_HR)
@@ -379,8 +379,8 @@ def objective(trial):
                     #print("bvtv on SR:",BVTV_SR)
                     BVTV_HR = bvtv_loss(labels_bin,masks)
                     #print("bvtv on HR:",BVTV_HR)
-                    P_SR = torch.cat((P_SR,BVTV_SR),dim=1)
-                    P_HR = torch.cat((P_HR,BVTV_HR),dim=1)
+                    P_SR = torch.cat((P_SR,BVTV_SR),dim=1).clamp(-1,1)
+                    P_HR = torch.cat((P_HR,BVTV_HR),dim=1).clamp(-1,1)
                     #if epoch==args.num_epochs-1:
                     #    data_param_HR_test.append(P_HR.detach().numpy())
                     #    data_param_SR_test.append(P_SR.detach().numpy())
@@ -486,5 +486,5 @@ for n_trial in range(3):
     study["alpha"].append(al)
     study["ssim"].append(ss)
 
-    with open("BPNN_4_3_2recall.pkl","wb") as f:
+    with open("BPNN_4_3_2_recall_clamp.pkl","wb") as f:
         pickle.dump(study,f)
