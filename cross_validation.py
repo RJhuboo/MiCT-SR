@@ -27,8 +27,6 @@ from ssim import ssim
 import time
 from PIL import Image
 
-## Create summary for tensorboard
-writer = SummaryWriter(log_dir='runs/'+opt.tensorboard_name)
 
 NB_DATA = 7100
 def bvtv_loss(tensor_to_count,tensor_mask):
@@ -65,7 +63,10 @@ def objective(trial):
     parser.add_argument('--k_fold', type=int, default = 1)
     parser.add_argument('--name', type=str, default = "BPNN_7lrhr_1alpha_clamp")
     args = parser.parse_args()
-
+    
+    ## Create summary for tensorboard
+    writer = SummaryWriter(log_dir='runs/'+args.tensorboard_name)
+    
     args.outputs_dir = os.path.join(args.outputs_dir, args.name)    
     if os.path.exists(args.outputs_dir) == False:
         os.makedirs(args.outputs_dir)
