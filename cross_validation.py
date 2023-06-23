@@ -43,9 +43,9 @@ def objective(trial):
     parser.add_argument('--HR_dir', type=str,default = "/gpfsstore/rech/tvs/uki75tv/data_fsrcnn/HR/Train_Label_trab_100")
     parser.add_argument('--LR_dir', type=str,default = "/gpfsstore/rech/tvs/uki75tv/data_fsrcnn/LR/Train_trab")
     parser.add_argument('--mask_dir',type=str,default = "/gpfsstore/rech/tvs/uki75tv/data_fsrcnn/HR/Train_trab_mask")
-    parser.add_argument('--tensorboard_name',type=str,default = "recall")
+    parser.add_argument('--tensorboard_name',type=str,default = "without_clamp")
     parser.add_argument('--outputs-dir', type=str, default = "./FSRCNN_search")
-    parser.add_argument('--checkpoint_bpnn', type= str, default = "./checkpoints_bpnn/BPNN_checkpoint_lrhr.pth")
+    parser.add_argument('--checkpoint_bpnn', type= str, default = "./checkpoints_bpnn/BPNN_checkpoint_TFfsrcnn.pth")
     parser.add_argument('--alpha', type = list, default = [1e-4])
     parser.add_argument('--Loss_bpnn', default = MSELoss)
     parser.add_argument('--weights-file', type=str)
@@ -220,8 +220,8 @@ def objective(trial):
                     BVTV_HR = bvtv_loss(labels,masks)
                     
                     #print("bvtv on HR:",BVTV_HR)
-                    P_SR = torch.cat((P_SR,BVTV_SR),dim=1).clamp(-1,1)
-                    P_HR = torch.cat((P_HR,BVTV_HR),dim=1).clamp(-1,1)
+                    P_SR = torch.cat((P_SR,BVTV_SR),dim=1)
+                    P_HR = torch.cat((P_HR,BVTV_HR),dim=1)
                     #if epoch == args.num_epochs - 1:
                     #    data_param_SR.append(P_SR.detach().numpy())
                     #    data_param_HR.append(P_HR.detach().numpy())
@@ -306,8 +306,8 @@ def objective(trial):
                     #print("bvtv on SR:",BVTV_SR)
                     BVTV_HR = bvtv_loss(labels_bin,masks)
                     #print("bvtv on HR:",BVTV_HR)
-                    P_SR = torch.cat((P_SR,BVTV_SR),dim=1).clamp(-1,1)
-                    P_HR = torch.cat((P_HR,BVTV_HR),dim=1).clamp(-1,1)
+                    P_SR = torch.cat((P_SR,BVTV_SR),dim=1)
+                    P_HR = torch.cat((P_HR,BVTV_HR),dim=1)
                     
                     Leval_SR = criterion(preds, labels)
                     Leval_BPNN = Lbpnn(P_SR,P_HR)
@@ -371,8 +371,8 @@ def objective(trial):
                     #print("bvtv on SR:",BVTV_SR)
                     BVTV_HR = bvtv_loss(labels_bin,masks)
                     #print("bvtv on HR:",BVTV_HR)
-                    P_SR = torch.cat((P_SR,BVTV_SR),dim=1).clamp(-1,1)
-                    P_HR = torch.cat((P_HR,BVTV_HR),dim=1).clamp(-1,1)
+                    P_SR = torch.cat((P_SR,BVTV_SR),dim=1)
+                    P_HR = torch.cat((P_HR,BVTV_HR),dim=1)
                     #if epoch==args.num_epochs-1:
                     #    data_param_HR_test.append(P_HR.detach().numpy())
                     #    data_param_SR_test.append(P_SR.detach().numpy())
@@ -460,6 +460,9 @@ def objective(trial):
     #    pickle.dump(training_info,f)
     #print('best epoch: {}, loss: {:.6f}'.format(best_epoch, best_loss))
     #return np.min(np.array(cross_bpnn)/args.k_fold), np.max(np.array(cross_psnr)/args.k_fold), args.alpha[trial], np.max(np.array(cross_ssim)/args.k_fold)
+    writer.add_scalar('MPNN',np.min(np.array(e_bpnn)),args.alpha[trial])
+    writer.add_scalar('SSIM',np.max(np.array(e_ssim)),args.alpha[trial])
+    writer.add_scalar('PSNR',np.max(np.array(e_psnr)),args.alpha[trial])
     return np.min(np.array(e_bpnn)),np.max(np.array(e_psnr)),args.alpha[trial],np.max(np.array(e_ssim)),
     #torch.save(best_weights, os.path.join(args.outputs_dir, 'best.pth'))
 
@@ -470,9 +473,6 @@ for n_trial in range(1):
     # study["psnr"].append(ps)
     # study["alpha"].append(al)
     # study["ssim"].append(ss)
-    writer.add_scalar('MPNN',bp,al)
-    writer.add_scalar('SSIM',ss,al)
-    writer.add_scalar('PSNR',ps,al)
-
+    
     #with open("BPNN_1.pkl","wb") as f:
     #    pickle.dump(study,f)
