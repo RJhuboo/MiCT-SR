@@ -27,12 +27,11 @@ class TrainDataset(Dataset):
         #HR = io.imread(HR_path) / 255
         #LR = io.imread(LR_path) / 255
         
-        mask = np.array(Image.open(mask_path)) /255
+        mask = (np.array(Image.open(mask_path))>0)*1.
         #mask = transform.rescale(mask, 1/8, anti_aliasing=False) / 255
         HR = HR.astype('float32')
         LR = LR.astype('float32')
         mask = mask.astype('float32')
-        
         p = random.random()
         rot = random.randint(-45,45)
         transform_list = []
@@ -51,6 +50,9 @@ class TrainDataset(Dataset):
         #    HR = self.transform(HR)
         #    LR = self.transform(LR)
         #    mask = self.transform(mask)
+        #print(np.unique(LR))
+        #print(np.shape(LR))
+        #print(LR,HR)
         return LR, HR, mask, all_images[idx]
         
     def __len__(self):
@@ -78,6 +80,7 @@ class TestDataset(Dataset):
         HR = HR.astype('float32')
         LR = LR.astype('float32')
         mask = mask.astype('float32')
+        print("in test: {}, {}, {}".format(np.unique(LR),np.shape(LR),LR))
         return LR, HR, mask, all_images[idx]
     def __len__(self):
         all_images = os.listdir(self.HR_dir)
