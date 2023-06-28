@@ -11,7 +11,7 @@ import torch.optim as optim
 import torch.backends.cudnn as cudnn
 from torch.utils.data.dataloader import DataLoader
 import torchvision.transforms as transforms
-from skimage.filters import threshold_otsu 
+import torchvision
 import pytorch_ssim
 from tqdm import tqdm
 from torch.utils.tensorboard import SummaryWriter
