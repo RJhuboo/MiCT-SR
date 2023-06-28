@@ -43,7 +43,7 @@ def objective(trial):
     parser.add_argument('--HR_dir', type=str,default = "/gpfsstore/rech/tvs/uki75tv/data_fsrcnn/HR/Train_Label_trab_100")
     parser.add_argument('--LR_dir', type=str,default = "/gpfsstore/rech/tvs/uki75tv/data_fsrcnn/LR/Train_trab")
     parser.add_argument('--mask_dir',type=str,default = "/gpfsstore/rech/tvs/uki75tv/data_fsrcnn/HR/Train_trab_mask")
-    parser.add_argument('--tensorboard_name',type=str,default = "rescale_x4")
+    parser.add_argument('--tensorboard_name',type=str,default = "rescale_x2")
     parser.add_argument('--outputs-dir', type=str, default = "./FSRCNN_search")
     parser.add_argument('--checkpoint_bpnn', type= str, default = "./checkpoints_bpnn/BPNN_checkpoint_TFfsrcnn.pth")
     parser.add_argument('--alpha', type = list, default = [1e-5])
@@ -62,7 +62,7 @@ def objective(trial):
     parser.add_argument('--gpu_ids', type=list, default = [0, 1, 2])
     parser.add_argument('--NB_LABEL', type=int, default = 7)
     parser.add_argument('--k_fold', type=int, default = 1)
-    parser.add_argument('--name', type=str, default = "BPNN_x4")
+    parser.add_argument('--name', type=str, default = "BPNN_x2")
     args = parser.parse_args()
     
     ## Create summary for tensorboard
@@ -177,7 +177,7 @@ def objective(trial):
                 count = 1
                 for data in train_dataloader:
                     inputs, labels, masks, imagename = data
-                    inputs = inputs.reshape(inputs.size(0),1,128,128)
+                    inputs = inputs.reshape(inputs.size(0),1,inputs.size(1),inputs.size(1))
                     labels = labels.reshape(labels.size(0),1,512,512)
                     masks = masks.reshape(masks.size(0),1,512,512)
                     #inputs, labels, masks = inputs.float(), labels.float(), masks.float()
@@ -249,7 +249,7 @@ def objective(trial):
             bpnn_loss_eval = AverageMeter()
             for data in eval_dataloader:
                 inputs, labels, masks, imagename = data
-                inputs = inputs.reshape(inputs.size(0),1,128,128)
+                inputs = inputs.reshape(inputs.size(0),1,inputs.size(),inputs.size())
                 labels = labels.reshape(labels.size(0),1,512,512)
                 masks = masks.reshape(masks.size(0),1,512,512)
                 #inputs, labels, masks = inputs.float(), labels.float(), masks.float()
@@ -314,7 +314,7 @@ def objective(trial):
             bpnn_loss_test = AverageMeter()
             for i,data in enumerate(test_dataloader):
                 inputs, labels, masks, imagename = data
-                inputs = inputs.reshape(inputs.size(0),1,128,128)
+                inputs = inputs.reshape(inputs.size(0),1,inputs.size(),inputs.size())
                 labels = labels.reshape(labels.size(0),1,512,512)
                 masks = masks.reshape(masks.size(0),1,512,512)
                 #inputs, labels, masks = inputs.float(), labels.float(), masks.float()
@@ -430,9 +430,9 @@ def objective(trial):
     #    pickle.dump(training_info,f)
     #print('best epoch: {}, loss: {:.6f}'.format(best_epoch, best_loss))
     #return np.min(np.array(cross_bpnn)/args.k_fold), np.max(np.array(cross_psnr)/args.k_fold), args.alpha[trial], np.max(np.array(cross_ssim)/args.k_fold)
-    writer.add_scalar('MPNN',np.min(np.array(e_bpnn)),args.alpha[trial])
-    writer.add_scalar('SSIM',np.max(np.array(e_ssim)),args.alpha[trial])
-    writer.add_scalar('PSNR',np.max(np.array(e_psnr)),args.alpha[trial])
+    #writer.add_scalar('MPNN',np.min(np.array(e_bpnn)),args.alpha[trial])
+    #writer.add_scalar('SSIM',np.max(np.array(e_ssim)),args.alpha[trial])
+    #writer.add_scalar('PSNR',np.max(np.array(e_psnr)),args.alpha[trial])
     return np.min(np.array(e_bpnn)),np.max(np.array(e_psnr)),args.alpha[trial],np.max(np.array(e_ssim)),
     #torch.save(best_weights, os.path.join(args.outputs_dir, 'best.pth'))
 
