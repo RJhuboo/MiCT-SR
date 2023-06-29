@@ -152,9 +152,9 @@ def objective(trial):
         test_dataloader = DataLoader(dataset=dataset_test,batch_size=1,num_workers=args.num_workers)
         print(len(eval_dataloader))
         print(len(test_dataloader))
-        # best_weights = copy.deepcopy(model.state_dict())
-        # best_epoch = 0
-        # best_loss = 10
+        best_weights = copy.deepcopy(model.state_dict())
+        best_epoch = 0
+        best_loss = 10
         # tr_psnr, tr_score, tr_bpnn, tr_ssim = [],[], [],[]
         e_score, e_bpnn, e_psnr,e_ssim = [], [], [], []
         # t_score, t_bpnn,t_psnr,t_ssim = [],[],[],[]
@@ -433,8 +433,8 @@ def objective(trial):
     #writer.add_scalar('MPNN',np.min(np.array(e_bpnn)),args.alpha[trial])
     #writer.add_scalar('SSIM',np.max(np.array(e_ssim)),args.alpha[trial])
     #writer.add_scalar('PSNR',np.max(np.array(e_psnr)),args.alpha[trial])
+    torch.save(best_weights, os.path.join(args.outputs_dir, 'best.pth'))
     return np.min(np.array(e_bpnn)),np.max(np.array(e_psnr)),args.alpha[trial],np.max(np.array(e_ssim)),
-    #torch.save(best_weights, os.path.join(args.outputs_dir, 'best.pth'))
 
 # study= {"bpnn" :[], "psnr": [], "alpha": [],"ssim":[]}
 for n_trial in range(1):
