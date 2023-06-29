@@ -43,13 +43,13 @@ def objective(trial):
     parser.add_argument('--HR_dir', type=str,default = "/gpfsstore/rech/tvs/uki75tv/data_fsrcnn/HR/Train_Label_trab_100")
     parser.add_argument('--LR_dir', type=str,default = "/gpfsstore/rech/tvs/uki75tv/data_fsrcnn/LR/Train_trab")
     parser.add_argument('--mask_dir',type=str,default = "/gpfsstore/rech/tvs/uki75tv/data_fsrcnn/HR/Train_trab_mask")
-    parser.add_argument('--tensorboard_name',type=str,default = "rescale_x2")
+    parser.add_argument('--tensorboard_name',type=str,default = "rescale_x4")
     parser.add_argument('--outputs-dir', type=str, default = "./FSRCNN_search")
     parser.add_argument('--checkpoint_bpnn', type= str, default = "./checkpoints_bpnn/BPNN_checkpoint_TFfsrcnn.pth")
     parser.add_argument('--alpha', type = list, default = [1e-5])
     parser.add_argument('--Loss_bpnn', default = MSELoss)
     parser.add_argument('--weights-file', type=str)
-    parser.add_argument('--scale', type=int, default=2)
+    parser.add_argument('--scale', type=int, default=4)
     parser.add_argument('--lr', type=float, default=1e-3)#-2
     parser.add_argument('--batch-size', type=int, default=16)
     parser.add_argument('--num-epochs', type=int, default=100)
@@ -62,7 +62,7 @@ def objective(trial):
     parser.add_argument('--gpu_ids', type=list, default = [0, 1, 2])
     parser.add_argument('--NB_LABEL', type=int, default = 7)
     parser.add_argument('--k_fold', type=int, default = 1)
-    parser.add_argument('--name', type=str, default = "BPNN_x2")
+    parser.add_argument('--name', type=str, default = "BPNN_x4")
     args = parser.parse_args()
     
     ## Create summary for tensorboard
@@ -355,7 +355,7 @@ def objective(trial):
                         torchvision.utils.save_image(labels, args.outputs_dir +'/alpha_'+str(args.alpha[trial])+'/labels_'+imagename[0])
                         torchvision.utils.save_image(preds_bin,args.outputs_dir+'/alpha_'+str(args.alpha[trial])+'/preds_bin_'+imagename[0])
                         torchvision.utils.save_image(preds,args.outputs_dir+'/alpha_'+str(args.alpha[trial])+'/preds'+imagename[0])
-                        torchvision.utils.save_images(inputs,args.output_dir+'/alpha_'+str(args.alpha[trial])+'/inputs'+imagename[0])
+                        torchvision.utils.save_image(inputs,args.output_dir+'/alpha_'+str(args.alpha[trial])+'/inputs'+imagename[0])
                     epoch_losses_test.update(loss_test.item())
                     bpnn_loss_test.update(Ltest_BPNN.item())
                     psnr_test.update(calc_psnr(labels.cpu(),preds.clamp(0.0,1.0).cpu(),masks.cpu(),device="cpu").item())
@@ -376,10 +376,10 @@ def objective(trial):
             #df_param_SR_test = pd.DataFrame(np.array(data_param_SR_test).reshape(1100,8),index=np.array(names_index_test).reshape(1100,1))
             #df_param_HR_test = pd.DataFrame(np.array(data_param_HR_test).reshape(1100,8),index=np.array(names_index_test).reshape(1100,1))
 
-          #  if epoch_losses_test.avg < best_loss:
-          #      best_epoch = epoch
-          #      best_loss = epoch_losses_test.avg
-                #best_weights = copy.deepcopy(model.state_dict())
+            if epoch_losses_test.avg < best_loss:
+                best_epoch = epoch
+                best_loss = epoch_losses_test.avg
+                best_weights = copy.deepcopy(model.state_dict())
          #   del epoch_losses_test, bpnn_loss_test, psnr, ssim_list
         #end = time.time() 
         #print("Time :", end-start) 
