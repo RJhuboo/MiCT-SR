@@ -355,7 +355,7 @@ def objective(trial):
                         torchvision.utils.save_image(labels, args.outputs_dir +'/alpha_'+str(args.alpha[trial])+'/labels_'+imagename[0])
                         torchvision.utils.save_image(preds_bin,args.outputs_dir+'/alpha_'+str(args.alpha[trial])+'/preds_bin_'+imagename[0])
                         torchvision.utils.save_image(preds,args.outputs_dir+'/alpha_'+str(args.alpha[trial])+'/preds'+imagename[0])
-                        torchvision.utils.save_image(inputs,args.output_dir+'/alpha_'+str(args.alpha[trial])+'/inputs'+imagename[0])
+                        torchvision.utils.save_image(inputs,args.outputs_dir+'/alpha_'+str(args.alpha[trial])+'/inputs'+imagename[0])
                     epoch_losses_test.update(loss_test.item())
                     bpnn_loss_test.update(Ltest_BPNN.item())
                     psnr_test.update(calc_psnr(labels.cpu(),preds.clamp(0.0,1.0).cpu(),masks.cpu(),device="cpu").item())
