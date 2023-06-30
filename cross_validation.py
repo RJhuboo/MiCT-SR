@@ -43,7 +43,7 @@ def objective(trial):
     parser.add_argument('--HR_dir', type=str,default = "/gpfsstore/rech/tvs/uki75tv/data_fsrcnn/HR/Train_Label_trab_100")
     parser.add_argument('--LR_dir', type=str,default = "/gpfsstore/rech/tvs/uki75tv/data_fsrcnn/LR/Train_trab")
     parser.add_argument('--mask_dir',type=str,default = "/gpfsstore/rech/tvs/uki75tv/data_fsrcnn/HR/Train_trab_mask")
-    parser.add_argument('--tensorboard_name',type=str,default = "recall")
+    parser.add_argument('--tensorboard_name',type=str,default = "rescale_x4")
     parser.add_argument('--outputs-dir', type=str, default = "./FSRCNN_search")
     parser.add_argument('--checkpoint_bpnn', type= str, default = "./checkpoints_bpnn/BPNN_checkpoint_TFfsrcnn.pth")
     parser.add_argument('--alpha', type = list, default = [0])
@@ -62,7 +62,7 @@ def objective(trial):
     parser.add_argument('--gpu_ids', type=list, default = [0, 1, 2])
     parser.add_argument('--NB_LABEL', type=int, default = 7)
     parser.add_argument('--k_fold', type=int, default = 1)
-    parser.add_argument('--name', type=str, default = "BPNN_x2bis")
+    parser.add_argument('--name', type=str, default = "BPNN_x4")
     args = parser.parse_args()
     
     ## Create summary for tensorboard
@@ -196,7 +196,7 @@ def objective(trial):
                     masks_bin = F.interpolate(masks_bin, size=64)
                     labels_bin = gaussian_blur(labels_bin)
                     labels_bin = labels_bin.cpu().numpy()
-                    labels_bin = labels_bin>0.2
+                    labels_bin = labels_bin>0.225
                     labels_bin = labels_bin.astype("float32")
                     labels_bin = torch.from_numpy(labels_bin).to(device)
                     P_SR = model_bpnn(masks_bin,preds_bin)
@@ -269,7 +269,7 @@ def objective(trial):
                     masks_bin = masks.clone().detach()
                     masks_bin = F.interpolate(masks_bin, size=64)
                     #t1, t2 = threshold_otsu(preds),threshold_otsu(labels)
-                    labels_bin = labels_bin>0.2
+                    labels_bin = labels_bin>0.225
                     labels_bin = labels_bin.astype("float32")
                     #preds_bin = preds_bin.astype("float32")
                     #preds_bin = torch.from_numpy(preds_bin).to(device)
@@ -332,7 +332,7 @@ def objective(trial):
                     labels_bin = labels_bin.cpu().numpy()
                     masks_bin = masks.clone().detach()
                     masks_bin = F.interpolate(masks_bin, size=64)
-                    labels_bin = labels_bin>0.2
+                    labels_bin = labels_bin>0.225
                     labels_bin = labels_bin.astype("float32")
                     labels_bin = torch.from_numpy(labels_bin).to(device)
                     P_SR = model_bpnn(masks_bin,preds_bin)
@@ -350,12 +350,12 @@ def objective(trial):
                     Ltest_SR = criterion(preds, labels)
                     Ltest_BPNN = Lbpnn(P_SR,P_HR)
                     loss_test = Ltest_SR + (args.alpha[trial] * Ltest_BPNN)
-                    #if epoch == args.num_epochs - 20 :
-                        #torchvision.utils.save_image(labels_bin, args.outputs_dir +'/alpha_'+str(args.alpha[trial]) + '/labels_bin_'+imagename[0])
-                        #torchvision.utils.save_image(labels, args.outputs_dir +'/alpha_'+str(args.alpha[trial])+'/labels_'+imagename[0])
-                        #torchvision.utils.save_image(preds_bin,args.outputs_dir+'/alpha_'+str(args.alpha[trial])+'/preds_bin_'+imagename[0])
-                        #torchvision.utils.save_image(preds,args.outputs_dir+'/alpha_'+str(args.alpha[trial])+'/preds'+imagename[0])
-                        #torchvision.utils.save_image(inputs,args.outputs_dir+'/alpha_'+str(args.alpha[trial])+'/inputs'+imagename[0])
+                    if epoch == args.num_epochs - 20 :
+                        torchvision.utils.save_image(labels_bin, args.outputs_dir +'/alpha_'+str(args.alpha[trial]) + '/labels_bin_'+imagename[0])
+                        torchvision.utils.save_image(labels, args.outputs_dir +'/alpha_'+str(args.alpha[trial])+'/labels_'+imagename[0])
+                        torchvision.utils.save_image(preds_bin,args.outputs_dir+'/alpha_'+str(args.alpha[trial])+'/preds_bin_'+imagename[0])
+                        torchvision.utils.save_image(preds,args.outputs_dir+'/alpha_'+str(args.alpha[trial])+'/preds'+imagename[0])
+                        torchvision.utils.save_image(inputs,args.outputs_dir+'/alpha_'+str(args.alpha[trial])+'/inputs'+imagename[0])
                     epoch_losses_test.update(loss_test.item())
                     bpnn_loss_test.update(Ltest_BPNN.item())
                     psnr_test.update(calc_psnr(labels.cpu(),preds.clamp(0.0,1.0).cpu(),masks.cpu(),device="cpu").item())
