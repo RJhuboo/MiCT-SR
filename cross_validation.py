@@ -46,7 +46,7 @@ def objective(trial):
     parser.add_argument('--tensorboard_name',type=str,default = "recall")
     parser.add_argument('--outputs-dir', type=str, default = "./FSRCNN_search")
     parser.add_argument('--checkpoint_bpnn', type= str, default = "./checkpoints_bpnn/BPNN_checkpoint_TFfsrcnn.pth")
-    parser.add_argument('--alpha', type = list, default = [1e-5,1e-6,0])
+    parser.add_argument('--alpha', type = list, default = [0])
     parser.add_argument('--Loss_bpnn', default = MSELoss)
     parser.add_argument('--weights-file', type=str)
     parser.add_argument('--scale', type=int, default=4)
@@ -96,7 +96,7 @@ def objective(trial):
         kf = KFold(n_splits = args.k_fold, shuffle=True)
     else:
         index = list(range(71))
-        kf = train_test_split(index,train_size=60,test_size=11,sshuffle=True,random_state=42)
+        kf = train_test_split(index,train_size=60,test_size=11,shuffle=True,random_state=42)
         kf[0] = sorted(kf[0])
         new_kf = [list(range(kf[0][i]*100,(kf[0][i]+1)*100)) for i in range(60)]
         new_kf=np.array(new_kf)
@@ -433,11 +433,11 @@ def objective(trial):
     #writer.add_scalar('MPNN',np.min(np.array(e_bpnn)),args.alpha[trial])
     #writer.add_scalar('SSIM',np.max(np.array(e_ssim)),args.alpha[trial])
     #writer.add_scalar('PSNR',np.max(np.array(e_psnr)),args.alpha[trial])
-    torch.save(best_weights, os.path.join(args.outputs_dir, 'best.pth'))
+    #torch.save(best_weights, os.path.join(args.outputs_dir, 'best.pth'))
     return np.min(np.array(e_bpnn)),np.max(np.array(e_psnr)),args.alpha[trial],np.max(np.array(e_ssim)),
 
 # study= {"bpnn" :[], "psnr": [], "alpha": [],"ssim":[]}
-for n_trial in range(3):
+for n_trial in range(1):
     bp,ps,al,ss = objective(n_trial)
     # study["bpnn"].append(bp)
     # study["psnr"].append(ps)
