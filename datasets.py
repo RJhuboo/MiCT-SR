@@ -20,8 +20,8 @@ class TrainDataset(Dataset):
         HR_path, LR_path = os.path.join(self.HR_dir,all_images[idx]), os.path.join(self.LR_dir,all_images[idx])
         mask_path = os.path.join(self.mask_dir, all_images[idx].replace(".png",".bmp"))
         HR = Image.open(HR_path)
-        LR = Image.open(LR_path)
-        LR = LR.resize((128,128),Image.BICUBIC)
+        #LR = Image.open(LR_path)
+        LR = HR.resize((256,256),Image.BICUBIC)
         LR = np.array(LR) /255
         HR = np.array(HR) /255
         #HR = io.imread(HR_path) / 255
@@ -70,8 +70,8 @@ class TestDataset(Dataset):
         HR_path, LR_path = os.path.join(self.HR_dir,all_images[idx]), os.path.join(self.LR_dir,all_images[idx])
         mask_path = os.path.join(self.mask_dir, all_images[idx].replace(".png",".bmp"))
         HR = Image.open(HR_path)
-        LR = Image.open(LR_path)
-        LR = LR.resize((128,128),Image.BICUBIC)
+        #LR = Image.open(LR_path)
+        LR = HR.resize((256,256),Image.BICUBIC)
         LR = np.array(LR)/255
         HR = np.array(HR)/255
         mask = np.array(Image.open(mask_path))
