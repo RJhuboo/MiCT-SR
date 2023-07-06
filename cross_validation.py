@@ -292,7 +292,7 @@ def objective(trial):
                     Leval_BPNN = Lbpnn(P_SR,P_HR)
                     
                     output_param[count,:] = P_SR.detach().cpu().numpy()
-                    label_param[count,:] = P_HR.detach().cpu().numpy(à)
+                    label_param[count,:] = P_HR.detach().cpu().numpy()
                     loss_eval = Leval_SR + (args.alpha[trial] * Leval_BPNN)
                     epoch_losses_eval.update(loss_eval.item())
                     bpnn_loss_eval.update(Leval_BPNN.item())
