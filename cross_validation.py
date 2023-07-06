@@ -248,6 +248,9 @@ def objective(trial):
             model.eval()
             epoch_losses_eval = AverageMeter()
             bpnn_loss_eval = AverageMeter()
+            count = 0
+            output_param= np.zeros((1100,8))
+            label_param=np.zeros((1100,8))
             for data in eval_dataloader:
                 inputs, labels, masks, imagename = data
                 inputs = inputs.reshape(inputs.size(0),1,inputs.size(2),inputs.size(2))
@@ -283,7 +286,8 @@ def objective(trial):
                     #print("bvtv on HR:",BVTV_HR)
                     P_SR = torch.cat((P_SR,BVTV_SR),dim=1)
                     P_HR = torch.cat((P_HR,BVTV_HR),dim=1)
-                    
+                    output_param[count,:] = P_SR
+                    label_param[count,:] = P_HR
                     #writer.add_figure('Parameter',fig)
                     
                     Leval_SR = criterion(preds, labels)
@@ -300,8 +304,7 @@ def objective(trial):
                     #torchvision.utils.save_image(inputs,'./save_image/epochs'+str(epoch) +'/input_'+imagename[0]+'.png')
                     #torchvision.utils.save_image(preds,'./save_image/epochs' + str(epoch) +'/preds'+imagename[0]+'.png')
             
-            output_param, label_param = P_SR.reshape((len(kf[1]),8)), P_HR.reshape((len(kf[1]),8))
-            #print(P_SR)
+            print(output_param)
             print(output_param[0])
             print("##### EVAL #####")
             print('eval loss: {:.6f}'.format(epoch_losses_eval.avg))
