@@ -15,6 +15,7 @@ import torchvision
 import pytorch_ssim
 from tqdm import tqdm
 from torch.utils.tensorboard import SummaryWriter
+import matplotlib.pyplot as plt
 
 import numpy as np
 from sklearn.model_selection import train_test_split
@@ -43,10 +44,10 @@ def objective(trial):
     parser.add_argument('--HR_dir', type=str,default = "/gpfsstore/rech/tvs/uki75tv/data_fsrcnn/HR/Train_Label_trab_100")
     parser.add_argument('--LR_dir', type=str,default = "/gpfsstore/rech/tvs/uki75tv/data_fsrcnn/LR/Train_trab")
     parser.add_argument('--mask_dir',type=str,default = "/gpfsstore/rech/tvs/uki75tv/data_fsrcnn/HR/Train_trab_mask")
-    parser.add_argument('--tensorboard_name',type=str,default = "recall_evaluation")
+    parser.add_argument('--tensorboard_name',type=str,default = "investigation")
     parser.add_argument('--outputs-dir', type=str, default = "./FSRCNN_search")
     parser.add_argument('--checkpoint_bpnn', type= str, default = "./checkpoints_bpnn/BPNN_checkpoint_TFfsrcnn.pth")
-    parser.add_argument('--alpha', type = list, default = [1e-4])
+    parser.add_argument('--alpha', type = list, default = [1e-5])
     parser.add_argument('--Loss_bpnn', default = MSELoss)
     parser.add_argument('--weights-file', type=str)
     parser.add_argument('--scale', type=int, default=2)
@@ -62,7 +63,7 @@ def objective(trial):
     parser.add_argument('--gpu_ids', type=list, default = [0, 1, 2])
     parser.add_argument('--NB_LABEL', type=int, default = 7)
     parser.add_argument('--k_fold', type=int, default = 1)
-    parser.add_argument('--name', type=str, default = "BPNN_recall_evaluation")
+    parser.add_argument('--name', type=str, default = "BPNN_investigation")
     args = parser.parse_args()
     
     ## Create summary for tensorboard
@@ -282,6 +283,9 @@ def objective(trial):
                     #print("bvtv on HR:",BVTV_HR)
                     P_SR = torch.cat((P_SR,BVTV_SR),dim=1)
                     P_HR = torch.cat((P_HR,BVTV_HR),dim=1)
+                    
+                    fig = plt.scatter(P_SR,P_HR)
+                    writer.add_figure('Parameter',fig)
                     
                     Leval_SR = criterion(preds, labels)
                     Leval_BPNN = Lbpnn(P_SR,P_HR)
