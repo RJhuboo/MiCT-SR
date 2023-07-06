@@ -286,13 +286,13 @@ def objective(trial):
                     #print("bvtv on HR:",BVTV_HR)
                     P_SR = torch.cat((P_SR,BVTV_SR),dim=1)
                     P_HR = torch.cat((P_HR,BVTV_HR),dim=1)
-                    output_param[count,:] = P_SR.copy().cpu()
-                    label_param[count,:] = P_HR.copy().cpu()
                     #writer.add_figure('Parameter',fig)
                     
                     Leval_SR = criterion(preds, labels)
                     Leval_BPNN = Lbpnn(P_SR,P_HR)
                     
+                    output_param[count,:] = P_SR.detach().cpu().numpy()
+                    label_param[count,:] = P_HR.detach().cpu().numpy(à)
                     loss_eval = Leval_SR + (args.alpha[trial] * Leval_BPNN)
                     epoch_losses_eval.update(loss_eval.item())
                     bpnn_loss_eval.update(Leval_BPNN.item())
