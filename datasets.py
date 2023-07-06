@@ -81,7 +81,6 @@ class TestDataset(Dataset):
         HR = HR.astype('float32')
         LR = LR.astype('float32')
         mask = mask.astype('float32')
-        print("in test: {}, {}, {}".format(np.unique(LR),np.shape(LR),LR))
         return LR, HR, mask, all_images[idx]
     def __len__(self):
         all_images = os.listdir(self.HR_dir)

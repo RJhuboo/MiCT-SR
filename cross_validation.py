@@ -305,8 +305,8 @@ def objective(trial):
             
             #print(output_param)
             print("for the evaluation :",len(output_param[0]))
-            #fig = plt.scatter(output_param[0], output_param[0])
-            #writer.add_figure('Parameter',fig)
+            fig = plt.scatter(output_param[0], output_param[0])
+            writer.add_figure('Parameter',fig)
             print("##### EVAL #####")
             print('eval loss: {:.6f}'.format(epoch_losses_eval.avg))
             print('bpnn loss: {:.6f}'.format(bpnn_loss_eval.avg))
