@@ -53,7 +53,7 @@ def objective(trial):
     parser.add_argument('--scale', type=int, default=2)
     parser.add_argument('--lr', type=float, default=1e-3)#-2
     parser.add_argument('--batch-size', type=int, default=16)
-    parser.add_argument('--num-epochs', type=int, default=100)
+    parser.add_argument('--num-epochs', type=int, default=1)
     parser.add_argument('--num-workers', type=int, default=24)
     parser.add_argument('--seed', type=int, default=123)
     parser.add_argument('--nof', type= int, default = 64)
@@ -443,6 +443,7 @@ def objective(trial):
     #writer.add_scalar('SSIM',np.max(np.array(e_ssim)),args.alpha[trial])
     #writer.add_scalar('PSNR',np.max(np.array(e_psnr)),args.alpha[trial])
     torch.save(best_weights, os.path.join(args.outputs_dir, 'best.pth'))
+    writer.close()
     return np.min(np.array(e_bpnn)),np.max(np.array(e_psnr)),args.alpha[trial],np.max(np.array(e_ssim)),
 
 # study= {"bpnn" :[], "psnr": [], "alpha": [],"ssim":[]}
