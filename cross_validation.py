@@ -286,8 +286,8 @@ def objective(trial):
                     #print("bvtv on HR:",BVTV_HR)
                     P_SR = torch.cat((P_SR,BVTV_SR),dim=1)
                     P_HR = torch.cat((P_HR,BVTV_HR),dim=1)
-                    output_param[count,:] = P_SR
-                    label_param[count,:] = P_HR
+                    output_param[count,:] = P_SR.copy().cpu()
+                    label_param[count,:] = P_HR.copy().cpu()
                     #writer.add_figure('Parameter',fig)
                     
                     Leval_SR = criterion(preds, labels)
