@@ -283,10 +283,10 @@ def objective(trial):
                     #print("bvtv on HR:",BVTV_HR)
                     P_SR = torch.cat((P_SR,BVTV_SR),dim=1)
                     P_HR = torch.cat((P_HR,BVTV_HR),dim=1)
-                    
-                    print(P_SR)
-                    print(P_SR[0])
-                    writer.add_figure('Parameter',fig)
+                    output_param, label_param = P_SR.reshape((len(kf[1]),8)), P_HR.reshape((len(kf[1]),8))
+                    #print(P_SR)
+                    print(output_param[0])
+                    #writer.add_figure('Parameter',fig)
                     
                     Leval_SR = criterion(preds, labels)
                     Leval_BPNN = Lbpnn(P_SR,P_HR)
