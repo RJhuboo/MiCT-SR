@@ -284,7 +284,8 @@ def objective(trial):
                     P_SR = torch.cat((P_SR,BVTV_SR),dim=1)
                     P_HR = torch.cat((P_HR,BVTV_HR),dim=1)
                     
-                    fig = plt.scatter(P_SR,P_HR)
+                    print(P_SR)
+                    print(P_SR[0])
                     writer.add_figure('Parameter',fig)
                     
                     Leval_SR = criterion(preds, labels)
