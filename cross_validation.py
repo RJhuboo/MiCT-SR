@@ -27,6 +27,7 @@ from utils import AverageMeter, calc_psnr
 from ssim import ssim
 import time
 from PIL import Image
+import pandas as pd
 
 
 NB_DATA = 7100
@@ -91,6 +92,7 @@ def objective(trial):
         param.requires_grad = False
     model_bpnn.eval()
        
+    eval_data = pd.read_csv("./Trab2D_eval.csv")
     #train_dataset = TrainDataset(args.HR_dir,args.LR_dir)
     index = range(NB_DATA)
     if args.k_fold >1:
@@ -251,6 +253,7 @@ def objective(trial):
             count=0
             output_param= np.zeros((1100,8))
             label_param=np.zeros((1100,8))
+            eval_param= np.zeros((1100,8))
             for data in eval_dataloader:
                 inputs, labels, masks, imagename = data
                 inputs = inputs.reshape(inputs.size(0),1,inputs.size(2),inputs.size(2))
@@ -294,15 +297,19 @@ def objective(trial):
                     s = P_HR.detach().cpu().numpy()
                     label_param[count,:] = s[0]
                     count += 1
+                    index = np.where(eval_data["File name"] == imagename[0])
+                    param_evaluation = np.array(eval_data.iloc[[index[0][0]]])[0]
+                    param_evaluation = np.array(param_evaluation[1:],float)
+                    eval_param[count,:] = param_evaluation    
                     loss_eval = Leval_SR + (args.alpha[trial] * Leval_BPNN)
                     epoch_losses_eval.update(loss_eval.item())
                     bpnn_loss_eval.update(Leval_BPNN.item())
                     psnr.update(calc_psnr(labels.cpu(),preds.clamp(0,1).cpu(),masks.cpu(),device="cpu").item())
                     ssim_list.update(ssim(x=labels.cpu(),y=preds.clamp(0.0,1.0).cpu(),data_range=1.,downsample=False,mask=masks.cpu(),device='cpu').item())
-                    if os.path.exists('./save_image/epochs'+str(epoch)) == False:
-                        os.makedirs('./save_image/epochs'+str(epoch))
-                    torchvision.utils.save_image(labels_bin, './save_image/epochs' + str(epoch) + '/' + imagename[0])
-                    torchvision.utils.save_image(masks,'./save_image/epochs'+str(epoch) +'/mask_'+imagename[0]+'.png')
+                    #if os.path.exists('./save_image/epochs'+str(epoch)) == False:
+                    #    os.makedirs('./save_image/epochs'+str(epoch))
+                    #torchvision.utils.save_image(labels_bin, './save_image/epochs' + str(epoch) + '/' + imagename[0])
+                    #torchvision.utils.save_image(masks,'./save_image/epochs'+str(epoch) +'/mask_'+imagename[0]+'.png')
                     #torchvision.utils.save_image(preds,'./save_image/epochs' + str(epoch) +'/preds'+imagename[0]+'.png')
             
             for b in range(8):
