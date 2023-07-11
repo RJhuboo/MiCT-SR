@@ -53,7 +53,7 @@ def objective(trial):
     parser.add_argument('--scale', type=int, default=2)
     parser.add_argument('--lr', type=float, default=1e-3)#-2
     parser.add_argument('--batch-size', type=int, default=16)
-    parser.add_argument('--num-epochs', type=int, default=1)
+    parser.add_argument('--num-epochs', type=int, default=100)
     parser.add_argument('--num-workers', type=int, default=24)
     parser.add_argument('--seed', type=int, default=123)
     parser.add_argument('--nof', type= int, default = 64)
@@ -248,7 +248,7 @@ def objective(trial):
             model.eval()
             epoch_losses_eval = AverageMeter()
             bpnn_loss_eval = AverageMeter()
-            count = 0
+            count=0
             output_param= np.zeros((1100,8))
             label_param=np.zeros((1100,8))
             for data in eval_dataloader:
@@ -289,24 +289,27 @@ def objective(trial):
                     
                     Leval_SR = criterion(preds, labels)
                     Leval_BPNN = Lbpnn(P_SR,P_HR)
-                    
-                    output_param[count,:] = P_SR.detach().cpu().numpy()
-                    label_param[count,:] = P_HR.detach().cpu().numpy()
+                    s = P_SR.detach().cpu().numpy()
+                    output_param[count,:] = s[0]
+                    s = P_HR.detach().cpu().numpy()
+                    label_param[count,:] = s[0]
+                    count += 1
                     loss_eval = Leval_SR + (args.alpha[trial] * Leval_BPNN)
                     epoch_losses_eval.update(loss_eval.item())
                     bpnn_loss_eval.update(Leval_BPNN.item())
                     psnr.update(calc_psnr(labels.cpu(),preds.clamp(0,1).cpu(),masks.cpu(),device="cpu").item())
                     ssim_list.update(ssim(x=labels.cpu(),y=preds.clamp(0.0,1.0).cpu(),data_range=1.,downsample=False,mask=masks.cpu(),device='cpu').item())
-                    #if os.path.exists('./save_image/epochs'+str(epoch)) == False:
-                    #    os.makedirs('./save_image/epochs'+str(epoch))
-                    #torchvision.utils.save_image(labels, './save_image/epochs' + str(epoch) + '/label'+imagename[0]+'.png')
-                    #torchvision.utils.save_image(inputs,'./save_image/epochs'+str(epoch) +'/input_'+imagename[0]+'.png')
+                    if os.path.exists('./save_image/epochs'+str(epoch)) == False:
+                        os.makedirs('./save_image/epochs'+str(epoch))
+                    torchvision.utils.save_image(labels_bin, './save_image/epochs' + str(epoch) + '/' + imagename[0])
+                    torchvision.utils.save_image(masks,'./save_image/epochs'+str(epoch) +'/mask_'+imagename[0]+'.png')
                     #torchvision.utils.save_image(preds,'./save_image/epochs' + str(epoch) +'/preds'+imagename[0]+'.png')
             
-            #print(output_param)
-            print("for the evaluation :",len(output_param[0]))
-            fig = plt.scatter(output_param[0], output_param[0])
-            writer.add_figure('Parameter',fig)
+            for b in range(8):
+                figure = plt.figure()
+                plt.plot(output_param[:,b], label_param[:,b],'yo')
+                plt.show()
+                writer.add_figure(str(epoch)+'/Parameter_'+str(b),figure)
             print("##### EVAL #####")
             print('eval loss: {:.6f}'.format(epoch_losses_eval.avg))
             print('bpnn loss: {:.6f}'.format(bpnn_loss_eval.avg))
