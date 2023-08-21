@@ -65,7 +65,7 @@ def objective(trial):
     parser.add_argument('--gpu_ids', type=list, default = [0, 1, 2])
     parser.add_argument('--NB_LABEL', type=int, default = 7)
     parser.add_argument('--k_fold', type=int, default = 1)
-    parser.add_argument('--name', type=str, default = "FSRCNN_Kbar_limit")
+    parser.add_argument('--name', type=str, default = "FSRCNN_Kbar_limit_new")
     args = parser.parse_args()
 
     args.outputs_dir = os.path.join(args.outputs_dir, args.name)    
