@@ -16,7 +16,7 @@ import pytorch_ssim
 from tqdm import tqdm
 from torch.utils.tensorboard import SummaryWriter
 import matplotlib.pyplot as plt
-
+from sklearn.preprocessing import StandardScaler
 import numpy as np
 from sklearn.model_selection import train_test_split
 from sklearn.model_selection import KFold
@@ -29,6 +29,12 @@ import time
 from PIL import Image
 import pandas as pd
 
+def normalization(csv_file="/gpfswork/rech/tvs/uki75tv/BPNN/csv_files/Label_trab_FSRCNN.csv",mode="standardization",indices=range(5800)):
+    Data = pd.read_csv(csv_file)
+    if mode == "standardization":
+        scaler = StandardScaler()
+    scaler.fit(Data.iloc[indices,1:])
+    return scaler
 
 NB_DATA = 7100
 def bvtv_loss(tensor_to_count,tensor_mask):
@@ -45,13 +51,13 @@ def objective(trial):
     parser.add_argument('--HR_dir', type=str,default = "/gpfsstore/rech/tvs/uki75tv/data_fsrcnn/HR/Train_Label_trab_100")
     parser.add_argument('--LR_dir', type=str,default = "/gpfsstore/rech/tvs/uki75tv/data_fsrcnn/LR/Train_trab")
     parser.add_argument('--mask_dir',type=str,default = "/gpfsstore/rech/tvs/uki75tv/data_fsrcnn/HR/Train_trab_mask")
-    parser.add_argument('--tensorboard_name',type=str,default = "investigation")
+    parser.add_argument('--tensorboard_name',type=str,default = "BPNN_x2")
     parser.add_argument('--outputs-dir', type=str, default = "./FSRCNN_search")
-    parser.add_argument('--checkpoint_bpnn', type= str, default = "./checkpoints_bpnn/BPNN_checkpoint_TFfsrcnn.pth")
-    parser.add_argument('--alpha', type = list, default = [1e-5])
+    parser.add_argument('--checkpoint_bpnn', type= str, default =  "../BPNN/convnet_fsrcnn_adapted/BPNN_checkpoint_12.pth")
+    parser.add_argument('--alpha', type = list, default = [1e-4])
     parser.add_argument('--Loss_bpnn', default = MSELoss)
     parser.add_argument('--weights-file', type=str)
-    parser.add_argument('--scale', type=int, default=2)
+    parser.add_argument('--scale', type=int, default=4)
     parser.add_argument('--lr', type=float, default=1e-3)#-2
     parser.add_argument('--batch-size', type=int, default=16)
     parser.add_argument('--num-epochs', type=int, default=100)
@@ -64,7 +70,7 @@ def objective(trial):
     parser.add_argument('--gpu_ids', type=list, default = [0, 1, 2])
     parser.add_argument('--NB_LABEL', type=int, default = 7)
     parser.add_argument('--k_fold', type=int, default = 1)
-    parser.add_argument('--name', type=str, default = "BPNN_investigation")
+    parser.add_argument('--name', type=str, default = "BPNN_recall_x2")
     args = parser.parse_args()
     
     ## Create summary for tensorboard
@@ -90,6 +96,7 @@ def objective(trial):
     model_bpnn.to(device)
     for param in model_bpnn.parameters():
         param.requires_grad = False
+        print(param)
     model_bpnn.eval()
        
     eval_data = pd.read_csv("./Trab2D_eval.csv")
@@ -131,6 +138,7 @@ def objective(trial):
         criterion = nn.MSELoss()
         Lbpnn =  args.Loss_bpnn()
         
+        scaler = normalization()
         my_transforms=None
         #my_transforms = transforms.Compose([
         #  transforms.ToPILImage(),
@@ -253,7 +261,7 @@ def objective(trial):
             count=0
             output_param= np.zeros((1100,8))
             label_param=np.zeros((1100,8))
-            eval_param= np.zeros((1100,8))
+            eval_param= np.zeros((1100,7))
             for data in eval_dataloader:
                 inputs, labels, masks, imagename = data
                 inputs = inputs.reshape(inputs.size(0),1,inputs.size(2),inputs.size(2))
@@ -283,40 +291,44 @@ def objective(trial):
                     labels_bin = torch.from_numpy(labels_bin).to(device)
                     P_SR = model_bpnn(masks_bin,preds_bin)
                     P_HR = model_bpnn(masks_bin,labels_bin)
+                    
                     BVTV_SR = bvtv_loss(preds_bin,masks)
                     #print("bvtv on SR:",BVTV_SR)
                     BVTV_HR = bvtv_loss(labels_bin,masks)
                     #print("bvtv on HR:",BVTV_HR)
                     P_SR = torch.cat((P_SR,BVTV_SR),dim=1)
                     P_HR = torch.cat((P_HR,BVTV_HR),dim=1)
-                    
                     Leval_SR = criterion(preds, labels)
                     Leval_BPNN = Lbpnn(P_SR,P_HR)
                     s = P_SR.detach().cpu().numpy()
                     output_param[count,:] = s[0]
                     s = P_HR.detach().cpu().numpy()
                     label_param[count,:] = s[0]
-                    count += 1
                     index = np.where(eval_data["File name"] == imagename[0])
                     param_evaluation = np.array(eval_data.iloc[[index[0][0]]])[0]
-                    param_evaluation = np.array(param_evaluation[1:],float)
-                    eval_param[count,:] = param_evaluation    
+                    param_evaluation = np.array(param_evaluation[2:],float)
+                    eval_param[count,:] = scaler.transform(param_evaluation.reshape((1,7)))
+                    count+=1
                     loss_eval = Leval_SR + (args.alpha[trial] * Leval_BPNN)
                     epoch_losses_eval.update(loss_eval.item())
                     bpnn_loss_eval.update(Leval_BPNN.item())
                     psnr.update(calc_psnr(labels.cpu(),preds.clamp(0,1).cpu(),masks.cpu(),device="cpu").item())
                     ssim_list.update(ssim(x=labels.cpu(),y=preds.clamp(0.0,1.0).cpu(),data_range=1.,downsample=False,mask=masks.cpu(),device='cpu').item())
-                    #if os.path.exists('./save_image/epochs'+str(epoch)) == False:
-                    #    os.makedirs('./save_image/epochs'+str(epoch))
-                    #torchvision.utils.save_image(labels_bin, './save_image/epochs' + str(epoch) + '/' + imagename[0])
-                    #torchvision.utils.save_image(masks,'./save_image/epochs'+str(epoch) +'/mask_'+imagename[0]+'.png')
+                    if os.path.exists('./save_image/test/epochs'+str(epoch)) == False:
+                        os.makedirs('./save_image/test/epochs'+str(epoch))
+                    #torchvision.utils.save_image(labels_bin, './save_image/test/epochs' + str(epoch) + '/' + imagename[0])
+                    #torchvision.utils.save_image(masks,'./save_image/test/epochs'+str(epoch) +'/mask_'+imagename[0])
                     #torchvision.utils.save_image(preds,'./save_image/epochs' + str(epoch) +'/preds'+imagename[0]+'.png')
             
-            for b in range(8):
+            for b in range(7):
                 figure = plt.figure()
-                plt.plot(output_param[:,b], label_param[:,b],'yo')
+                plt.plot(label_param[:,b],output_param[:,b],'yo')
+                plt.plot(label_param[:,b],eval_param[:,b],'go')
+                plt.plot(eval_param[:,b],eval_param[:,b])
+                plt.xlabel("HR parameter estimation")
+                plt.ylabel("Output parameter estimation\n True parameter")
                 plt.show()
-                writer.add_figure(str(epoch)+'/Parameter_'+str(b),figure)
+                writer.add_figure("alpha"+str(args.alpha[trial])+"/"+str(epoch)+'/Parameter_'+str(b),figure)
             print("##### EVAL #####")
             print('eval loss: {:.6f}'.format(epoch_losses_eval.avg))
             print('bpnn loss: {:.6f}'.format(bpnn_loss_eval.avg))
@@ -452,7 +464,7 @@ def objective(trial):
     #writer.add_scalar('MPNN',np.min(np.array(e_bpnn)),args.alpha[trial])
     #writer.add_scalar('SSIM',np.max(np.array(e_ssim)),args.alpha[trial])
     #writer.add_scalar('PSNR',np.max(np.array(e_psnr)),args.alpha[trial])
-    torch.save(best_weights, os.path.join(args.outputs_dir, 'best.pth'))
+    torch.save(best_weights, os.path.join(args.outputs_dir, 'alpha'+args.alpha[trial]+'best.pth'))
     writer.close()
     return np.min(np.array(e_bpnn)),np.max(np.array(e_psnr)),args.alpha[trial],np.max(np.array(e_ssim)),
 
