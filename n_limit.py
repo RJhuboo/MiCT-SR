@@ -44,11 +44,11 @@ def bvtv_loss(tensor_to_count,tensor_mask):
 
 def objective(trial):
     parser = argparse.ArgumentParser()
-    parser.add_argument('--HR_dir', type=str,default = "./data/HR/Train_Label_trab_100")
-    parser.add_argument('--LR_dir', type=str,default = "./data/LR/Train_trab")
-    parser.add_argument('--mask_dir',type=str,default = "./data/HR/Train_trab_mask")
+    parser.add_argument('--HR_dir', type=str,default = "/gpfsstore/rech/tvs/uki75tv/data_fsrcnn/HR/Train_Label_trab_100")
+    parser.add_argument('--LR_dir', type=str,default = "/gpfsstore/rech/tvs/uki75tv/data_fsrcnn/LR/Train_trab")
+    parser.add_argument('--mask_dir',type=str,default = "/gpfsstore/rech/tvs/uki75tv/data_fsrcnn/HR/Train_trab_mask")
     parser.add_argument('--outputs-dir', type=str, default = "./FSRCNN_search")
-    parser.add_argument('--checkpoint_bpnn', type= str, default = "./checkpoints_bpnn/BPNN_checkpoint_lrhr.pth")
+    parser.add_argument('--checkpoint_bpnn', type= str, default =  "../BPNN/convnet_fsrcnn_adapted/BPNN_checkpoint_12.pth")
     parser.add_argument('--alpha', type = list, default = [10,20,30,40,50,60])
     parser.add_argument('--Loss_bpnn', default = MSELoss)
     parser.add_argument('--weights-file', type=str)
@@ -184,7 +184,7 @@ def objective(trial):
                     masks_bin = F.interpolate(masks_bin, size=64)
                     labels_bin = gaussian_blur(labels_bin)
                     labels_bin = labels_bin.cpu().numpy()
-                    labels_bin = labels_bin>0.2
+                    labels_bin = labels_bin>0.225
                     labels_bin = labels_bin.astype("float32")
                     labels_bin = torch.from_numpy(labels_bin).to(device)
                     
@@ -192,8 +192,8 @@ def objective(trial):
                     P_HR = model_bpnn(masks_bin,labels_bin)
                     BVTV_SR = bvtv_loss(preds_bin,masks)
                     BVTV_HR = bvtv_loss(labels,masks)
-                    P_SR = torch.cat((P_SR,BVTV_SR),dim=1).clamp(-1,1)
-                    P_HR = torch.cat((P_HR,BVTV_HR),dim=1).clamp(-1,1)
+                    P_SR = torch.cat((P_SR,BVTV_SR),dim=1)
+                    P_HR = torch.cat((P_HR,BVTV_HR),dim=1)
 
                     L_SR = criterion(preds, labels)
                     L_BPNN = Lbpnn(P_SR,P_HR)
@@ -248,7 +248,7 @@ def objective(trial):
                     masks_bin = masks.clone().detach()
                     masks_bin = F.interpolate(masks_bin, size=64)
                     #t1, t2 = threshold_otsu(preds),threshold_otsu(labels)
-                    labels_bin = labels_bin>0.2
+                    labels_bin = labels_bin>0.225
                     labels_bin = labels_bin.astype("float32")
                     #preds_bin = preds_bin.astype("float32")
                     #preds_bin = torch.from_numpy(preds_bin).to(device)
@@ -259,8 +259,8 @@ def objective(trial):
                     #print("bvtv on SR:",BVTV_SR)
                     BVTV_HR = bvtv_loss(labels_bin,masks)
                     #print("bvtv on HR:",BVTV_HR)
-                    P_SR = torch.cat((P_SR,BVTV_SR),dim=1).clamp(-1,1)
-                    P_HR = torch.cat((P_HR,BVTV_HR),dim=1).clamp(-1,1)
+                    P_SR = torch.cat((P_SR,BVTV_SR),dim=1)
+                    P_HR = torch.cat((P_HR,BVTV_HR),dim=1)
                     Ltest_SR = criterion(preds, labels)
                     Ltest_BPNN = Lbpnn(P_SR,P_HR)
                     loss_test = Ltest_SR + (1e-4 * Ltest_BPNN)
