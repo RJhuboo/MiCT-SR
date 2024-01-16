@@ -15,7 +15,6 @@ import torchvision.transforms as transforms
 from skimage.filters import threshold_otsu 
 import pytorch_ssim
 from tqdm import tqdm
-#import optuna
 import joblib
 import numpy as np
 from sklearn.model_selection import train_test_split
@@ -90,7 +89,6 @@ def objective(trial):
         param.requires_grad = False
     model_bpnn.eval()
        
-    #train_dataset = TrainDataset(args.HR_dir,args.LR_dir)
     index = range(NB_DATA)
     if args.k_fold >1:
         kf = KFold(n_splits = args.k_fold, shuffle=True)
@@ -103,12 +101,8 @@ def objective(trial):
         kf[0] = np.vstack(new_kf).reshape((args.alpha[trial]*100,1)).flatten()
         new_kf = [list(range(kf[1][i]*100,(kf[1][i]+1)*100)) for i in range(71 - args.alpha[trial])]
         new_kf = np.array(new_kf)
-        kf[1] = np.vstack(new_kf).reshape(((71-args.alpha[trial])*100,1)).flatten()
-        #kf = train_test_split(index,train_size=6000,test_size=1100,shuffle=False)
-    #cross_bpnn, cross_score, cross_psnr, cross_ssim = np.zeros(args.num_epochs),np.zeros(args.num_epochs),np.zeros(args.num_epochs),np.zeros(args.num_epochs)
-    #cross_bpnn_train, cross_score_train, cross_psnr_train, cross_ssim_train = np.zeros(args.num_epochs),np.zeros(args.num_epochs),np.zeros(args.num_epochs),np.zeros(args.num_epochs)
+        kf[1] = np.vstack(new_kf).reshape(((71-args.alpha[trial])*100,1)).flatten()  
     for k in range(1):
-    # for train_index, test_index in kf.split(index):
         train_index = shuffle(kf[0])
         test_index = shuffle(kf[1])
         print("-------  Data separation -------")
@@ -121,7 +115,6 @@ def objective(trial):
                                 {'params': model.mid_part.parameters()},
                                 {'params': model.last_part.parameters(), 'lr': args.lr * 0.1}
                                 ], lr=args.lr)
-        #optimizer = optim.Adam(list(model_bpnn.parameters()) + list(model.parameters()))
         if torch.cuda.device_count() >1:
             model = nn.DataParallel(model) 
         model.to(device)
@@ -247,32 +240,19 @@ def objective(trial):
                     labels_bin = labels_bin.cpu().numpy()
                     masks_bin = masks.clone().detach()
                     masks_bin = F.interpolate(masks_bin, size=64)
-                    #t1, t2 = threshold_otsu(preds),threshold_otsu(labels)
                     labels_bin = labels_bin>0.225
                     labels_bin = labels_bin.astype("float32")
-                    #preds_bin = preds_bin.astype("float32")
-                    #preds_bin = torch.from_numpy(preds_bin).to(device)
                     labels_bin = torch.from_numpy(labels_bin).to(device)
                     P_SR = model_bpnn(masks_bin,preds_bin)
                     P_HR = model_bpnn(masks_bin,labels_bin)
                     BVTV_SR = bvtv_loss(preds_bin,masks)
-                    #print("bvtv on SR:",BVTV_SR)
                     BVTV_HR = bvtv_loss(labels_bin,masks)
-                    #print("bvtv on HR:",BVTV_HR)
                     P_SR = torch.cat((P_SR,BVTV_SR),dim=1)
                     P_HR = torch.cat((P_HR,BVTV_HR),dim=1)
                     Ltest_SR = criterion(preds, labels)
                     Ltest_BPNN = Lbpnn(P_SR,P_HR)
                     loss_test = Ltest_SR + (1e-4 * Ltest_BPNN)
-                    #if best_epoch_tracking > loss_test.item():
-                        #best_epoch_tracking = loss_test.item();
-                        #if i%100:
-                            #print("-")
-                            #torchvision.utils.save_image(labels_bin, './save_image/alpha_'+str(args.alpha[trial]) + '/labels_bin_'+imagename[0])
-                            #torchvision.utils.save_image(labels,'./save_image/alpha_'+str(args.alpha[trial])+'/labels_'+imagename[0])
-                            #torchvision.utils.save_image(preds_bin,'./save_image/alpha_'+str(args.alpha[trial])+'/preds_bin_'+imagename[0])
-                            #torchvision.utils.save_image(preds,'./save_image/alpha_'+str(args.alpha[trial])+'/preds'+imagename[0])
-                
+
                     epoch_losses_test.update(loss_test.item())
                     bpnn_loss_test.update(Ltest_BPNN.item())
                     psnr_test.update(calc_psnr(labels.cpu(),preds.clamp(0.0,1.0).cpu(),masks.cpu(),device="cpu").item())
@@ -284,10 +264,7 @@ def objective(trial):
             t_bpnn.append(bpnn_loss_test.avg)
             t_psnr.append(psnr_test.avg)
             t_ssim.append(ssim_test.avg)
-          #  if epoch_losses_test.avg < best_loss:
-          #      best_epoch = epoch
-          #      best_loss = epoch_losses_test.avg
-                #best_weights = copy.deepcopy(model.state_dict())
+
     training_info = {"loss_train": tr_score,
                      "loss_test": t_score,
                      "bpnn_train" : tr_bpnn,
