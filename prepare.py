@@ -37,7 +37,6 @@ def train(args):
         for hr in hr_images:
             hr_width = (hr.width // args.scale) * args.scale
             hr_height = (hr.height // args.scale) * args.scale
-            #lr = lr.resize((lr.width // args.scale, lr.height // args.scale), resample=pil_image.BICUBIC)
             hr = np.array(hr).astype(np.float32)
             lr = np.array(lr).astype(np.float32)
             
@@ -49,8 +48,7 @@ def train(args):
                 for j in range(0, lr.shape[1] , lr.shape[1]//2):
                     lr_patches.append(lr[i:i+(lr.shape[0]//2), j:j+(lr.shape[1]//2)])
                     hr_patches.append(hr[i*args.scale:i*args.scale+(lr.shape[0]//2)*args.scale, j*args.scale:j*args.scale+(lr.shape[1]//2)*args.scale])
-            #lr_patches.append(lr)
-            #hr_patches.append(hr)
+
 
     lr_patches = np.array(lr_patches)
     hr_patches = np.array(hr_patches)
