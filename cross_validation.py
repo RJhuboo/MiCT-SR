@@ -51,14 +51,14 @@ def objective(trial):
     parser.add_argument('--HR_dir', type=str,default = "/gpfsstore/rech/tvs/uki75tv/data_fsrcnn/HR/Train_Label_trab_100")
     parser.add_argument('--LR_dir', type=str,default = "/gpfsstore/rech/tvs/uki75tv/data_fsrcnn/LR/Train_trab")
     parser.add_argument('--mask_dir',type=str,default = "/gpfsstore/rech/tvs/uki75tv/data_fsrcnn/HR/Train_trab_mask")
-    parser.add_argument('--tensorboard_name',type=str,default = "BPNN_x2")
+    parser.add_argument('--tensorboard_name',type=str,default = "BPNN_x4_last")
     parser.add_argument('--outputs-dir', type=str, default = "./FSRCNN_search")
     parser.add_argument('--checkpoint_bpnn', type= str, default =  "../BPNN/convnet_fsrcnn_adapted/BPNN_checkpoint_12.pth")
-    parser.add_argument('--alpha', type = list, default = [1e-4])
+    parser.add_argument('--alpha', type = list, default = [1e-4,0])
     parser.add_argument('--Loss_bpnn', default = MSELoss)
     parser.add_argument('--weights-file', type=str)
     parser.add_argument('--scale', type=int, default=4)
-    parser.add_argument('--lr', type=float, default=1e-3)#-2
+    parser.add_argument('--lr', type=float, default=1e-5)#-2
     parser.add_argument('--batch-size', type=int, default=16)
     parser.add_argument('--num-epochs', type=int, default=100)
     parser.add_argument('--num-workers', type=int, default=24)
@@ -70,7 +70,7 @@ def objective(trial):
     parser.add_argument('--gpu_ids', type=list, default = [0, 1, 2])
     parser.add_argument('--NB_LABEL', type=int, default = 7)
     parser.add_argument('--k_fold', type=int, default = 1)
-    parser.add_argument('--name', type=str, default = "BPNN_recall_x2")
+    parser.add_argument('--name', type=str, default = "BPNN_x4_last")
     args = parser.parse_args()
     
     ## Create summary for tensorboard
@@ -297,18 +297,18 @@ def objective(trial):
                     BVTV_HR = bvtv_loss(labels_bin,masks)
                     #print("bvtv on HR:",BVTV_HR)
                     P_SR = torch.cat((P_SR,BVTV_SR),dim=1)
-                    P_HR = torch.cat((P_HR,BVTV_HR),dim=1)
-                    Leval_SR = criterion(preds, labels)
+                    P_HR = torch.cat((P_HR,BVTV_HR),dim=1
+                    Leval_SR = criterion(preds*torch.Tensor(masks_bin), labels)
                     Leval_BPNN = Lbpnn(P_SR,P_HR)
-                    s = P_SR.detach().cpu().numpy()
-                    output_param[count,:] = s[0]
-                    s = P_HR.detach().cpu().numpy()
-                    label_param[count,:] = s[0]
-                    index = np.where(eval_data["File name"] == imagename[0])
-                    param_evaluation = np.array(eval_data.iloc[[index[0][0]]])[0]
-                    param_evaluation = np.array(param_evaluation[2:],float)
-                    eval_param[count,:] = scaler.transform(param_evaluation.reshape((1,7)))
-                    count+=1
+                    #s = P_SR.detach().cpu().numpy()
+                    #output_param[count,:] = s[0]
+                    #s = P_HR.detach().cpu().numpy()
+                    #label_param[count,:] = s[0]
+                    #index = np.where(eval_data["File name"] == imagename[0])
+                    #param_evaluation = np.array(eval_data.iloc[[index[0][0]]])[0]
+                    #param_evaluation = np.array(param_evaluation[2:],float)
+                    #eval_param[count,:] = scaler.transform(param_evaluation.reshape((1,7)))
+                    #count+=1
                     loss_eval = Leval_SR + (args.alpha[trial] * Leval_BPNN)
                     epoch_losses_eval.update(loss_eval.item())
                     bpnn_loss_eval.update(Leval_BPNN.item())
@@ -320,15 +320,15 @@ def objective(trial):
                     #torchvision.utils.save_image(masks,'./save_image/test/epochs'+str(epoch) +'/mask_'+imagename[0])
                     #torchvision.utils.save_image(preds,'./save_image/epochs' + str(epoch) +'/preds'+imagename[0]+'.png')
             
-            for b in range(7):
-                figure = plt.figure()
-                plt.plot(label_param[:,b],output_param[:,b],'yo')
-                plt.plot(label_param[:,b],eval_param[:,b],'go')
-                plt.plot(eval_param[:,b],eval_param[:,b])
-                plt.xlabel("HR parameter estimation")
-                plt.ylabel("Output parameter estimation\n True parameter")
-                plt.show()
-                writer.add_figure("alpha"+str(args.alpha[trial])+"/"+str(epoch)+'/Parameter_'+str(b),figure)
+            #for b in range(7):
+                #figure = plt.figure()
+                #plt.plot(label_param[:,b],output_param[:,b],'yo')
+                #plt.plot(label_param[:,b],eval_param[:,b],'go')
+                #plt.plot(eval_param[:,b],eval_param[:,b])
+                #plt.xlabel("HR parameter estimation")
+                #plt.ylabel("Output parameter estimation\n True parameter")
+                #plt.show()
+                #writer.add_figure("alpha"+str(args.alpha[trial])+"/"+str(epoch)+'/Parameter_'+str(b),figure)
             print("##### EVAL #####")
             print('eval loss: {:.6f}'.format(epoch_losses_eval.avg))
             print('bpnn loss: {:.6f}'.format(bpnn_loss_eval.avg))
@@ -464,12 +464,12 @@ def objective(trial):
     #writer.add_scalar('MPNN',np.min(np.array(e_bpnn)),args.alpha[trial])
     #writer.add_scalar('SSIM',np.max(np.array(e_ssim)),args.alpha[trial])
     #writer.add_scalar('PSNR',np.max(np.array(e_psnr)),args.alpha[trial])
-    torch.save(best_weights, os.path.join(args.outputs_dir, 'alpha'+args.alpha[trial]+'best.pth'))
+    torch.save(best_weights, os.path.join(args.outputs_dir, 'alpha'+str(args.alpha[trial])+'best.pth'))
     writer.close()
     return np.min(np.array(e_bpnn)),np.max(np.array(e_psnr)),args.alpha[trial],np.max(np.array(e_ssim)),
 
 # study= {"bpnn" :[], "psnr": [], "alpha": [],"ssim":[]}
-for n_trial in range(1):
+for n_trial in range(2):
     bp,ps,al,ss = objective(n_trial)
     # study["bpnn"].append(bp)
     # study["psnr"].append(ps)

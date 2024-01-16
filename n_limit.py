@@ -15,7 +15,7 @@ import torchvision.transforms as transforms
 from skimage.filters import threshold_otsu 
 import pytorch_ssim
 from tqdm import tqdm
-import optuna
+#import optuna
 import joblib
 import numpy as np
 from sklearn.model_selection import train_test_split
@@ -49,7 +49,7 @@ def objective(trial):
     parser.add_argument('--mask_dir',type=str,default = "/gpfsstore/rech/tvs/uki75tv/data_fsrcnn/HR/Train_trab_mask")
     parser.add_argument('--outputs-dir', type=str, default = "./FSRCNN_search")
     parser.add_argument('--checkpoint_bpnn', type= str, default =  "../BPNN/convnet_fsrcnn_adapted/BPNN_checkpoint_12.pth")
-    parser.add_argument('--alpha', type = list, default = [10,20,30,40,50,60])
+    parser.add_argument('--alpha', type = list, default = [1,5])
     parser.add_argument('--Loss_bpnn', default = MSELoss)
     parser.add_argument('--weights-file', type=str)
     parser.add_argument('--scale', type=int, default=2)
@@ -197,7 +197,7 @@ def objective(trial):
 
                     L_SR = criterion(preds, labels)
                     L_BPNN = Lbpnn(P_SR,P_HR)
-                    loss = L_SR + (0 * L_BPNN)
+                    loss = L_SR #+ (1e-4 * L_BPNN)
 
                     epoch_losses.update(loss.item())
                     bpnn_loss.update(L_BPNN.item())
@@ -312,10 +312,10 @@ def objective(trial):
 
 
 study= {"loss":[],"alpha":[]}
-for n_trial in range(6):
+for n_trial in range(7):
     lo,al = objective(n_trial)
     study["loss"].append(lo)
     study["alpha"].append(al)
 
-    with open("Kbar_limit.pkl","wb") as f:
+    with open("Kbar_limit_1_5.pkl","wb") as f:
         pickle.dump(study,f)
