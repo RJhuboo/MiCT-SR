@@ -97,7 +97,6 @@ if __name__ == '__main__':
     best_weights = copy.deepcopy(model.state_dict())
     best_epoch = 0
     best_loss = 10
-    tr_score, tr_bpnn= [], []
 
     # Start epoch
     for epoch in range(args.num_epochs):
@@ -105,7 +104,7 @@ if __name__ == '__main__':
         model.train()
         epoch_losses = AverageMeter()
         bpnn_loss = AverageMeter()
-        
+        psnr_train = AverageMeter()
         with tqdm(total=(len(train_dataloader) - len(train_dataloader) % args.batch_size), ncols=80) as t:
             t.set_description('epoch: {}/{}'.format(epoch, args.num_epochs - 1))
             
@@ -134,25 +133,36 @@ if __name__ == '__main__':
                 labels_bin = labels_bin>0.225 # Empirical Value, must be tuned or Labels_bin must be provided differently
                 labels_bin = labels_bin.astype("float32")
                 labels_bin = torch.from_numpy(labels_bin).to(device)
+
+                # Compute Morphometric parameters
+                P_SR = model_bpnn(masks_bin,preds_bin)
+                P_HR = model_bpnn(masks_bin,labels_bin)
+                BVTV_SR = bvtv_loss(preds_bin,masks)
+                BVTV_HR = bvtv_loss(labels,masks)
+                P_SR = torch.cat((P_SR,BVTV_SR),dim=1)
+                P_HR = torch.cat((P_HR,BVTV_HR),dim=1)
                 
-                # Loss
+                # Compute the loss
                 L_SR = criterion(preds, labels)
-                #L_BPNN = Lbpnn(P_SR,P_HR)
-                print("LSR:",L_SR)
-                #print("LBPNN:",L_BPNN)
+                L_BPNN = Lbpnn(P_SR,P_HR)
                 loss = L_SR + (args.alpha * L_BPNN)
 
-                epoch_losses.update(loss.item(), len(inputs))
-                #bpnn_loss.update(L_BPNN.item(), len(inputs))
-                
                 # Backward
                 optimizer.zero_grad()
-                loss.backward()
-                #loss.mean().backward()
+                loss.mean().backward()
                 optimizer.step()
 
-                t.set_postfix(loss='{:.6f}'.format(epoch_losses.avg))
+                # Performance
+                epoch_losses.update(loss.item(), len(inputs))
+                bpnn_loss.update(L_BPNN.item())
+                with torch.no_grad():
+                    psnr_train.update(calc_psnr(labels.cpu(),preds.clamp(0.0,1.0).cpu(),masks.cpu(),device="cpu").item())
+
+                # Display the performance
+                t.set_postfix(loss='{:.9f}'.format(epoch_losses.avg),LossSR='{:.9f}'.format(L_SR.item()),bpnn='{:.3f}'.format(bpnn_loss.avg),psnr='{:.1f}'.format(psnr_train.avg),ssim='{:.1f}'.format(ssim_train.avg),alpha='{:.8f}'.format(args.alpha[trial]))
                 t.update(len(inputs))
+                
+  
         
         # Display result Losses
         print("##### Train #####")
@@ -164,16 +174,6 @@ if __name__ == '__main__':
             torch.save(model.module.state_dict(), os.path.join(args.outputs_dir, 'epoch_{}.pth'.format(epoch)))
         else:
             torch.save(model.state_dict(), os.path.join(args.outputs_dir, 'epoch_{}.pth'.format(epoch)))
-        tr_score.append(epoch_losses.avg)
-        tr_bpnn.append(bpnn_loss.avg)
-    
-    # Save training losses
-    training_info = {"loss_train": tr_score,"bpnn_train" : tr_bpnn}
-    i=1
-    while os.path.exists(os.path.join(args.outputs_dir,"losses_info"+str(i)+".pkl")) == True:
-        i=i+1
-    with open( os.path.join(args.outputs_dir,"losses_info"+str(i)+".pkl"), "wb") as f:
-        pickle.dump(training_info,f)
+
     print('best epoch: {}, loss: {:.6f}'.format(best_epoch, best_loss))
-        #torch.save(best_weights, os.path.join(args.outputs_dir, 'best.pth'))
 
