@@ -69,7 +69,7 @@ if __name__ == '__main__':
     model_bpnn.eval()
 
                        
-    cross_bpnn, cross_score, cross_psnr = [], [], []
+    score_bpnn, score_sr, score_psnr = [], [], []
     
     # Create FSRCNN model with manual seed 
     torch.manual_seed(args.seed)
@@ -94,7 +94,6 @@ if __name__ == '__main__':
                                   shuffle=True,
                                   num_workers=args.num_workers)
                                   #pin_memory=True)  
-
     best_weights = copy.deepcopy(model.state_dict())
     best_epoch = 0
     best_loss = 10
@@ -114,21 +113,34 @@ if __name__ == '__main__':
             for data in train_dataloader:
                 
                 # Forward
-                inputs, labels, _ = data
+                inputs, labels, masks = data
                 inputs = inputs.reshape(inputs.size(0),1,256,256)
                 labels = labels.reshape(labels.size(0),1,512,512)
-                inputs, labels= inputs.float(), labels.float()
-                inputs, labels = inputs.to(device), labels.to(device)
-                preds = model(inputs)
-                #P_SR = model_bpnn(preds)
-                #P_HR = model_bpnn(labels)
+                masks = masks.reshape(masks.size(0),1,512,512)
+                inputs, labels, masks = inputs.to(device), labels.to(device), masks.to(device)
 
+                preds,preds_bin = model(inputs)
+                preds = preds.clamp(0.0,1.0)
+
+                # Initialization for label binarization
+                labels_bin = labels.clone().detach()
+                masks_bin = masks.clone().detach()
+                masks_bin = F.interpolate(masks_bin, size=64)
+
+                # Binarized the label image
+                gaussian_blur = transforms.GaussianBlur((3,3),3)
+                labels_bin = gaussian_blur(labels_bin)
+                labels_bin = labels_bin.cpu().numpy()
+                labels_bin = labels_bin>0.225 # Empirical Value, must be tuned or Labels_bin must be provided differently
+                labels_bin = labels_bin.astype("float32")
+                labels_bin = torch.from_numpy(labels_bin).to(device)
+                
                 # Loss
                 L_SR = criterion(preds, labels)
                 #L_BPNN = Lbpnn(P_SR,P_HR)
                 print("LSR:",L_SR)
                 #print("LBPNN:",L_BPNN)
-                loss = L_SR #+ (args.alpha * L_BPNN)
+                loss = L_SR + (args.alpha * L_BPNN)
 
                 epoch_losses.update(loss.item(), len(inputs))
                 #bpnn_loss.update(L_BPNN.item(), len(inputs))
