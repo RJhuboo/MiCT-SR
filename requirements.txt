@@ -1,0 +1,17 @@
+numpy
+pickle
+opencv-python==4.6.0
+optuna==3.1.1
+pandas==1.4.2
+Pillow==9.2.0
+piq==0.7.0
+scikit-image==0.19.2
+scikit-learn==1.0.2
+tensorboard==2.8.0
+tensorboard-data-server==0.6.1
+tensorboard-plugin-wit==1.8.1
+torch==1.11.0
+torchio==0.18.76
+torchmetrics==0.8.0
+torchvision==0.12.0a0
+tqdm
