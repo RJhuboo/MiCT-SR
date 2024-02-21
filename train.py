@@ -9,7 +9,6 @@ import torch.optim as optim
 import torch.backends.cudnn as cudnn
 from torch.utils.data.dataloader import DataLoader
 from tqdm import tqdm
-import optuna
 import joblib
 import numpy as np
 from sklearn.model_selection import train_test_split
