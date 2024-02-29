@@ -1,4 +1,4 @@
-from torch.autograd import Variable
+fom torch.autograd import Variable
 import argparse
 import os
 import copy
@@ -27,7 +27,7 @@ import time
 from PIL import Image
 import pandas as pd
 
-def normalization(csv_file="/gpfswork/rech/tvs/uki75tv/BPNN/csv_files/Label_trab_FSRCNN.csv",mode="standardization",indices=range(5800)):
+def normalization(csv_file="./Label_trab_FSRCNN.csv",mode="standardization",indices=range(5800)):
     Data = pd.read_csv(csv_file)
     if mode == "standardization":
         scaler = StandardScaler()
